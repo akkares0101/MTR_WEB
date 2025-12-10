@@ -1,0 +1,29 @@
+/* src/index.css */
+@import url('https://fonts.googleapis.com/css2?family=Mali:wght@400;500;600;700&family=Prompt:wght@300;400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-display: 'Mali', cursive;
+  --font-body: 'Prompt', sans-serif;
+}
+
+/* Global Styles - ปรับพื้นหลังใหม่ให้น่ารัก */
+body {
+  font-family: var(--font-body);
+  /* ใช้สีพื้นหลังแบบไล่สีพาสเทล */
+  background: linear-gradient(to bottom right, #FFF7ED, #F3E8FF, #ECFDF5);
+  min-height: 100vh;
+  /* เพิ่มลายจุดเล็กๆ จางๆ ทับลงไป */
+  background-image: 
+      radial-gradient(#FFEDD5 2px, transparent 2px), 
+      radial-gradient(#E9D5FF 2px, transparent 2px);
+  background-size: 32px 32px;
+  background-position: 0 0, 16px 16px;
+}
+
+/* เพิ่ม Class สำหรับปุ่มน่ารักๆ ไว้ใช้ซ้ำ */
+@layer components {
+  .btn-cute {
+    @apply rounded-full font-bold shadow-[0_4px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-1 transition-all cursor-pointer;
+  }
+}
