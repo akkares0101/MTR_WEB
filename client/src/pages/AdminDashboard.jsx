@@ -19,7 +19,7 @@ export default function AdminDashboard() {
     const [isEdit, setIsEdit] = useState(false);
     const [id, setId] = useState(null);
 
-    // ✅ เปลี่ยน ageRange เป็น Array [] เพื่อรองรับหลายชั้น
+    // ✅ ฟอร์มใบงาน (รองรับหลายช่วงอายุ หลายวิชา)
     const [form, setForm] = useState({ title: '', ageRange: [], categories: [], imageUrl: '', pdfUrl: '' });
 
     const [fileImg, setFileImg] = useState(null);
@@ -34,18 +34,50 @@ export default function AdminDashboard() {
     const [targetGroup, setTargetGroup] = useState('2-3');
     const [loading, setLoading] = useState(false);
 
-    // รายชื่อช่วงอายุทั้งหมด
-    const ageOptionsList = ["2-3", "3-4", "4-5", "5-6", "เตรียมป1", "เสริมเชาว์", "บัตรคำ", "ตามหน่วย"];
+    // ✅ รายชื่อ Age Groups ทั้งหมดจาก DB
+    const [ageGroups, setAgeGroups] = useState([]);
 
-    useEffect(() => { loadData(); }, []);
+    // ✅ Modal สำหรับจัดการหมวดหมู่อายุ
+    const [showAgeModal, setShowAgeModal] = useState(false);
+
+    // ✅ ฟอร์มเพิ่ม/แก้ไขช่วงอายุ
+    const [ageForm, setAgeForm] = useState({
+        id: null,
+        ageValue: '',
+        label: '',
+        desc: '',
+        color: 'green',
+        icon: 'Baby',
+        sortOrder: 0,
+    });
+    const [ageSaving, setAgeSaving] = useState(false);
+
+    // ✅ รายชื่อช่วงอายุ: ดึงจาก DB ถ้ามี ถ้าไม่มีใช้ค่าเริ่มต้น
+    const ageOptionsList = ageGroups.length
+        ? ageGroups.map((ag) => ag.ageValue)
+        : ["2-3", "3-4", "4-5", "5-6", "เตรียมป1", "เสริมเชาว์", "บัตรคำ", "ตามหน่วย"];
+
+    useEffect(() => {
+        loadData();
+    }, []);
 
     const loadData = async () => {
         setLoading(true);
         try {
-            const works = await API.getWorksheets();
+            const [works, cats, ages] = await Promise.all([
+                API.getWorksheets(),
+                API.getCategories(),
+                API.getAgeGroups(),
+            ]);
+
             setData(works);
-            const cats = await API.getCategories();
             setAllCategories(cats);
+            setAgeGroups(ages);
+
+            // ตั้งค่า targetGroup เริ่มต้นจาก ageGroups ถ้ามี
+            if (ages.length > 0 && !ages.some((ag) => ag.ageValue === targetGroup)) {
+                setTargetGroup(ages[0].ageValue);
+            }
         } catch (error) {
             console.error("Connection Error:", error);
         }
@@ -57,21 +89,34 @@ export default function AdminDashboard() {
 
     // ✅ ฟังก์ชันเลือก/ยกเลิก "ระดับชั้น"
     const toggleAge = (age) => {
-        if (form.ageRange.includes(age)) {
-            // เอาออก (แต่ถ้าเหลือวิชาที่ไม่ตรงกับชั้นที่เหลือ ต้องเคลียร์วิชาทิ้งด้วย ถ้าต้องการ)
-            setForm({ ...form, ageRange: form.ageRange.filter(a => a !== age) });
-        } else {
-            setForm({ ...form, ageRange: [...form.ageRange, age] });
-        }
+        setForm((prev) => {
+            if (prev.ageRange.includes(age)) {
+                return {
+                    ...prev,
+                    ageRange: prev.ageRange.filter((a) => a !== age),
+                };
+            }
+            return {
+                ...prev,
+                ageRange: [...prev.ageRange, age],
+            };
+        });
     };
 
     // ✅ ฟังก์ชันเลือก/ยกเลิก "วิชา"
     const toggleCategory = (catName) => {
-        if (form.categories.includes(catName)) {
-            setForm({ ...form, categories: form.categories.filter(c => c !== catName) });
-        } else {
-            setForm({ ...form, categories: [...form.categories, catName] });
-        }
+        setForm((prev) => {
+            if (prev.categories.includes(catName)) {
+                return {
+                    ...prev,
+                    categories: prev.categories.filter((c) => c !== catName),
+                };
+            }
+            return {
+                ...prev,
+                categories: [...prev.categories, catName],
+            };
+        });
     };
 
     const handleFileChange = (e, type) => {
@@ -89,7 +134,7 @@ export default function AdminDashboard() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!form.title) return alert('กรุณากรอกชื่อใบงาน');
-        
+
         // Validation
         if (form.ageRange.length === 0) return alert('กรุณาเลือกระดับชั้นอย่างน้อย 1 ระดับ');
         if (form.categories.length === 0) return alert('กรุณาเลือกวิชาอย่างน้อย 1 วิชา');
@@ -98,13 +143,13 @@ export default function AdminDashboard() {
         setLoading(true);
         const formData = new FormData();
         formData.append('title', form.title);
-        
+
         // ✅ รวมระดับชั้นเป็น string (เช่น "2-3,3-4")
         formData.append('ageRange', form.ageRange.join(','));
-        
+
         // ✅ รวมวิชาเป็น string (เช่น "คณิต,ไทย")
         formData.append('category', form.categories.join(','));
-        
+
         if (fileImg) formData.append('image', fileImg);
         if (filePdf) formData.append('pdf', filePdf);
 
@@ -131,22 +176,25 @@ export default function AdminDashboard() {
     };
 
     const handleDelete = async (delId) => {
-        if (confirm('ยืนยันการลบ?')) { await API.deleteWorksheet(delId); loadData(); }
+        if (confirm('ยืนยันการลบ?')) {
+            await API.deleteWorksheet(delId);
+            loadData();
+        }
     };
 
     const handleEditClick = (item) => {
         setIsEdit(true);
         setId(item.id);
-        
+
         // แปลงข้อมูลจาก DB (ที่เป็น string) กลับมาเป็น Array เพื่อแสดงผลปุ่มที่ถูกเลือก
         const ageArray = item.ageRange ? item.ageRange.split(',') : [];
         const catArray = item.category ? item.category.split(',') : [];
 
         setForm({
-            title: item.title, 
+            title: item.title,
             ageRange: ageArray,
-            categories: catArray, 
-            imageUrl: item.imageUrl, 
+            categories: catArray,
+            imageUrl: item.imageUrl,
             pdfUrl: item.pdfUrl
         });
         setPreviewImgUrl(item.imageUrl);
@@ -161,29 +209,92 @@ export default function AdminDashboard() {
             setNewCat('');
             loadData();
         }
-    }
+    };
 
     const handleDeleteCat = async (catId) => {
-        if (confirm(`ลบวิชานี้?`)) { await API.deleteCategory(catId); loadData(); }
-    }
+        if (confirm(`ลบวิชานี้?`)) {
+            await API.deleteCategory(catId);
+            loadData();
+        }
+    };
 
-    // Dropdown options สำหรับ Modal จัดการวิชา (อันนี้ยังเป็น dropdown เหมือนเดิม เพราะจัดการทีละชั้น)
-    const ageOptions = (
+    // ✅ Dropdown options สำหรับ Modal จัดการวิชา: ใช้ ageGroups จาก DB
+    const ageOptions = ageGroups.length ? (
         <>
-            <optgroup label="ช่วงอายุ">
-                <option value="2-3">2-3 ปี</option>
-                <option value="3-4">3-4 ปี</option>
-                <option value="4-5">4-5 ปี</option>
-                <option value="5-6">5-6 ปี</option>
-            </optgroup>
-            <optgroup label="หมวดพิเศษ">
-                <option value="เตรียมป1">เตรียมขึ้น ป.1</option>
-                <option value="เสริมเชาว์">เสริมเชาว์ฯ</option>
-                <option value="บัตรคำ">บัตรคำ</option>
-                <option value="ตามหน่วย">ใบงานตามหน่วย</option>
-            </optgroup>
+            {ageGroups.map((ag) => (
+                <option key={ag.id} value={ag.ageValue}>
+                    {ag.label}
+                </option>
+            ))}
+        </>
+    ) : (
+        <>
+            <option value="2-3">2-3 ปี</option>
+            <option value="3-4">3-4 ปี</option>
+            <option value="4-5">4-5 ปี</option>
+            <option value="5-6">5-6 ปี</option>
+            <option value="เตรียมป1">เตรียมขึ้น ป.1</option>
+            <option value="เสริมเชาว์">เสริมเชาว์ฯ</option>
+            <option value="บัตรคำ">บัตรคำ</option>
+            <option value="ตามหน่วย">ใบงานตามหน่วย</option>
         </>
     );
+
+    // ✅ บันทึก/แก้ไข Age Group
+    const handleSaveAgeGroup = async (e) => {
+        e.preventDefault();
+        if (!ageForm.ageValue.trim()) return alert('กรุณาใส่รหัสช่วงอายุ เช่น 2-3');
+        if (!ageForm.label.trim()) return alert('กรุณาใส่ชื่อช่วงอายุที่จะแสดง');
+
+        setAgeSaving(true);
+        try {
+            const payload = {
+                ageValue: ageForm.ageValue.trim(),
+                label: ageForm.label.trim(),
+                desc: ageForm.desc.trim(),
+                color: ageForm.color,
+                icon: ageForm.icon,
+                sortOrder: Number(ageForm.sortOrder) || 0,
+            };
+
+            if (ageForm.id) {
+                await API.updateAgeGroup(ageForm.id, payload);
+            } else {
+                await API.addAgeGroup(payload);
+            }
+
+            const ages = await API.getAgeGroups();
+            setAgeGroups(ages);
+
+            // เคลียร์ฟอร์มหลังบันทึก
+            setAgeForm({
+                id: null,
+                ageValue: '',
+                label: '',
+                desc: '',
+                color: 'green',
+                icon: 'Baby',
+                sortOrder: ages.length + 1,
+            });
+        } catch (err) {
+            console.error(err);
+            alert('บันทึกช่วงอายุไม่สำเร็จ');
+        }
+        setAgeSaving(false);
+    };
+
+    // ✅ ลบ Age Group
+    const handleDeleteAgeGroup = async (id) => {
+        if (!confirm('ลบหมวดหมู่อายุนี้ทั้งหมดหรือไม่ ?')) return;
+        try {
+            await API.deleteAgeGroup(id);
+            const ages = await API.getAgeGroups();
+            setAgeGroups(ages);
+        } catch (err) {
+            console.error(err);
+            alert('ลบหมวดหมู่อายุไม่สำเร็จ');
+        }
+    };
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-800 pb-20">
@@ -197,17 +308,33 @@ export default function AdminDashboard() {
                         <h1 className="text-xl font-bold text-slate-800 tracking-tight hidden sm:block">Admin Console</h1>
                     </div>
                     <div className="flex gap-2 sm:gap-3">
-                        <button 
-                            onClick={() => setShowBulkUpload(true)} 
+                        <button
+                            onClick={() => setShowBulkUpload(true)}
                             className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-3 sm:px-4 py-2 rounded-xl font-bold hover:shadow-lg hover:-translate-y-0.5 transition-all text-xs sm:text-sm shadow-md"
                         >
                             <UploadCloud size={18} /> <span className="hidden sm:inline">เพิ่มทีละหลายใบ</span>
                         </button>
 
-                        <button onClick={() => setShowCatModal(true)} className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-3 sm:px-4 py-2 rounded-xl font-bold hover:bg-slate-50 hover:border-slate-300 transition-all text-xs sm:text-sm shadow-sm">
+                        <button
+                            onClick={() => setShowCatModal(true)}
+                            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-3 sm:px-4 py-2 rounded-xl font-bold hover:bg-slate-50 hover:border-slate-300 transition-all text-xs sm:text-sm shadow-sm"
+                        >
                             <Settings size={18} className="text-indigo-500" /> <span className="hidden sm:inline">จัดการวิชา</span>
                         </button>
-                        <button onClick={() => { AuthService.logout(); navigate('/'); }} className="flex items-center gap-2 bg-rose-50 text-rose-600 border border-rose-100 px-3 sm:px-4 py-2 rounded-xl font-bold hover:bg-rose-100 transition-all text-xs sm:text-sm shadow-sm">
+
+                        {/* ✅ ปุ่มใหม่: จัดการช่วงอายุ */}
+                        <button
+                            onClick={() => setShowAgeModal(true)}
+                            className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 sm:px-4 py-2 rounded-xl font-bold hover:bg-emerald-100 hover:border-emerald-300 transition-all text-xs sm:text-sm shadow-sm"
+                        >
+                            <Tag size={18} className="text-emerald-500" />
+                            <span className="hidden sm:inline">จัดการช่วงอายุ</span>
+                        </button>
+
+                        <button
+                            onClick={() => { AuthService.logout(); navigate('/'); }}
+                            className="flex items-center gap-2 bg-rose-50 text-rose-600 border border-rose-100 px-3 sm:px-4 py-2 rounded-xl font-bold hover:bg-rose-100 transition-all text-xs sm:text-sm shadow-sm"
+                        >
                             <LogOut size={18} /> <span className="hidden sm:inline">ออก</span>
                         </button>
                     </div>
@@ -228,7 +355,13 @@ export default function AdminDashboard() {
                         <form onSubmit={handleSubmit} className="space-y-5">
                             <div>
                                 <label className="text-xs font-bold text-slate-500 ml-1 mb-1.5 block uppercase tracking-wider">ชื่อใบงาน</label>
-                                <input type="text" placeholder="ระบุชื่อใบงาน..." className="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none text-sm font-medium transition-all" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
+                                <input
+                                    type="text"
+                                    placeholder="ระบุชื่อใบงาน..."
+                                    className="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none text-sm font-medium transition-all"
+                                    value={form.title}
+                                    onChange={e => setForm((prev) => ({ ...prev, title: e.target.value }))}
+                                />
                             </div>
 
                             {/* ✅ ส่วนเลือก "ระดับชั้น" (Multi-Select) */}
@@ -245,11 +378,10 @@ export default function AdminDashboard() {
                                                     key={age}
                                                     type="button"
                                                     onClick={() => toggleAge(age)}
-                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-1 ${
-                                                        isSelected 
-                                                        ? 'bg-blue-500 text-white border-blue-600 shadow-md' 
+                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-1 ${isSelected
+                                                        ? 'bg-blue-500 text-white border-blue-600 shadow-md'
                                                         : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {isSelected && <CheckCircle size={12} />}
                                                     {age}
@@ -275,11 +407,10 @@ export default function AdminDashboard() {
                                                         key={cat.id}
                                                         type="button"
                                                         onClick={() => toggleCategory(cat.name)}
-                                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-1 ${
-                                                            isSelected 
-                                                            ? 'bg-indigo-500 text-white border-indigo-600 shadow-md transform scale-105' 
+                                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-1 ${isSelected
+                                                            ? 'bg-indigo-500 text-white border-indigo-600 shadow-md transform scale-105'
                                                             : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
-                                                        }`}
+                                                            }`}
                                                     >
                                                         {isSelected && <CheckCircle size={12} />}
                                                         {cat.name}
@@ -326,9 +457,24 @@ export default function AdminDashboard() {
 
                             <div className="pt-4 flex gap-3">
                                 {isEdit && (
-                                    <button type="button" onClick={() => { setIsEdit(false); setForm({ title: '', ageRange: [], categories: [], imageUrl: '', pdfUrl: '' }); setPreviewImgUrl(''); setFileImg(null); setFilePdf(null); }} className="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all">ยกเลิก</button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsEdit(false);
+                                            setForm({ title: '', ageRange: [], categories: [], imageUrl: '', pdfUrl: '' });
+                                            setPreviewImgUrl('');
+                                            setFileImg(null);
+                                            setFilePdf(null);
+                                        }}
+                                        className="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all"
+                                    >
+                                        ยกเลิก
+                                    </button>
                                 )}
-                                <button disabled={loading} className={`flex-1 text-white py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 text-sm flex items-center justify-center gap-2 ${isEdit ? 'bg-gradient-to-r from-orange-400 to-pink-500' : 'bg-gradient-to-r from-indigo-500 to-purple-500'} disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none`}>
+                                <button
+                                    disabled={loading}
+                                    className={`flex-1 text-white py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 text-sm flex items-center justify-center gap-2 ${isEdit ? 'bg-gradient-to-r from-orange-400 to-pink-500' : 'bg-gradient-to-r from-indigo-500 to-purple-500'} disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none`}
+                                >
                                     {loading ? <Loader className="animate-spin" size={18} /> : (isEdit ? <><Save size={18} /> บันทึกการแก้ไข</> : <><Plus size={18} /> บันทึก</>)}
                                 </button>
                             </div>
@@ -340,7 +486,7 @@ export default function AdminDashboard() {
                 <div className="lg:col-span-8">
                     <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
                         <h2 className="text-base font-bold text-slate-700 flex items-center gap-2">
-                            <LayoutDashboard className="text-indigo-500" size={20}/>
+                            <LayoutDashboard className="text-indigo-500" size={20} />
                             รายการใบงานทั้งหมด <span className="bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-md text-sm">{data.length}</span>
                         </h2>
                     </div>
@@ -358,14 +504,21 @@ export default function AdminDashboard() {
                                         onClick={() => setPreview(d)}
                                         className="relative w-full aspect-[3/4] rounded-xl bg-slate-100 overflow-hidden cursor-pointer mb-3"
                                     >
-                                        <img src={d.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => { e.target.onerror = null; e.target.src = "https://via.placeholder.com/300?text=No+Image"; }}/>
+                                        <img
+                                            src={d.imageUrl}
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                            onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = "https://via.placeholder.com/300?text=No+Image";
+                                            }}
+                                        />
                                         <div className="absolute inset-0 bg-indigo-900/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
                                             <div className="bg-white/90 p-2 rounded-full shadow-sm backdrop-blur-sm">
                                                 <Eye size={20} className="text-indigo-600" />
                                             </div>
                                         </div>
                                         <div className="absolute top-2 left-2 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-bold text-indigo-600 shadow-sm flex items-center gap-1 border border-indigo-50">
-                                            <Tag size={10}/> {d.ageRange}
+                                            <Tag size={10} /> {d.ageRange}
                                         </div>
                                     </div>
 
@@ -393,7 +546,7 @@ export default function AdminDashboard() {
 
                     {!loading && data.length === 0 && (
                         <div className="text-center py-20 bg-white rounded-[2rem] border-2 border-dashed border-slate-200 text-slate-400">
-                            <Image className="mx-auto mb-4 text-slate-300" size={60}/>
+                            <Image className="mx-auto mb-4 text-slate-300" size={60} />
                             <p className="text-lg font-bold">ยังไม่มีข้อมูลในระบบ</p>
                             <p className="text-sm">เริ่มสร้างใบงานใหม่ได้ที่ฟอร์มฝั่งซ้ายมือ</p>
                         </div>
@@ -430,13 +583,13 @@ export default function AdminDashboard() {
                             <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
                                 {allCategories.filter(c => c.ageGroup === targetGroup).map(cat => (
                                     <div key={cat.id} className="flex justify-between items-center p-3 bg-white rounded-xl border border-slate-100 text-sm hover:shadow-md transition-all group">
-                                        <span className="font-bold text-slate-700 flex items-center gap-2"><Tag size={16} className="text-indigo-400 group-hover:text-indigo-600"/> {cat.name}</span>
+                                        <span className="font-bold text-slate-700 flex items-center gap-2"><Tag size={16} className="text-indigo-400 group-hover:text-indigo-600" /> {cat.name}</span>
                                         <button onClick={() => handleDeleteCat(cat.id)} className="text-slate-400 hover:text-red-500 bg-slate-50 p-2 rounded-lg transition-all hover:bg-red-50"><Trash2 size={18} /></button>
                                     </div>
                                 ))}
                                 {allCategories.filter(c => c.ageGroup === targetGroup).length === 0 && (
                                     <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                                        <Tag className="mx-auto mb-2 text-slate-300" size={32}/>
+                                        <Tag className="mx-auto mb-2 text-slate-300" size={32} />
                                         <p className="font-medium">ยังไม่มีวิชาในกลุ่มนี้</p>
                                     </div>
                                 )}
@@ -446,10 +599,189 @@ export default function AdminDashboard() {
                 )}
             </AnimatePresence>
 
+            {/* --- MODAL จัดการหมวดหมู่อายุ --- */}
+            <AnimatePresence>
+                {showAgeModal && (
+                    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="bg-white p-6 rounded-[2rem] w-full max-w-lg shadow-2xl relative border border-white/50"
+                        >
+                            <button
+                                onClick={() => setShowAgeModal(false)}
+                                className="absolute top-5 right-5 bg-slate-100 p-2 rounded-full hover:bg-slate-200 transition-all text-slate-500"
+                            >
+                                <X size={20} />
+                            </button>
+
+                            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-3 pb-3 border-b border-slate-100">
+                                <div className="bg-emerald-100 p-2 rounded-xl text-emerald-500">
+                                    <Tag size={24} />
+                                </div>
+                                จัดการหมวดหมู่อายุ
+                            </h2>
+
+                            {/* รายการช่วงอายุ */}
+                            <div className="mb-5 max-h-48 overflow-y-auto space-y-2 pr-1">
+                                {ageGroups.map((ag) => (
+                                    <div
+                                        key={ag.id}
+                                        className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100"
+                                    >
+                                        <div className="min-w-0">
+                                            <p className="font-bold text-slate-700 text-sm">
+                                                {ag.ageValue} : {ag.label}
+                                            </p>
+                                            {ag.desc && (
+                                                <p className="text-[11px] text-slate-500 truncate">
+                                                    {ag.desc}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setAgeForm({
+                                                        id: ag.id,
+                                                        ageValue: ag.ageValue,
+                                                        label: ag.label,
+                                                        desc: ag.desc || '',
+                                                        color: ag.color || 'green',
+                                                        icon: ag.icon || 'Baby',
+                                                        sortOrder: ag.sortOrder ?? 0,
+                                                    })
+                                                }
+                                                className="px-2 py-1 text-xs bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-emerald-50 hover:border-emerald-200"
+                                            >
+                                                แก้ไข
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDeleteAgeGroup(ag.id)}
+                                                className="px-2 py-1 text-xs bg-rose-50 border border-rose-200 rounded-lg text-rose-600 hover:bg-rose-100"
+                                            >
+                                                ลบ
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {ageGroups.length === 0 && (
+                                    <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-sm">
+                                        ยังไม่มีหมวดหมู่อายุในระบบ
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* ฟอร์มเพิ่ม/แก้ไข */}
+                            <form
+                                onSubmit={handleSaveAgeGroup}
+                                className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3"
+                            >
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 block mb-1">
+                                            รหัสช่วงอายุ (age_value)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            className="w-full p-2.5 bg-white border-2 border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-400"
+                                            placeholder="เช่น 2-3, บัตรคำ"
+                                            value={ageForm.ageValue}
+                                            onChange={(e) =>
+                                                setAgeForm((prev) => ({ ...prev, ageValue: e.target.value }))
+                                            }
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 block mb-1">
+                                            ชื่อที่แสดง (label)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            className="w-full p-2.5 bg-white border-2 border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-400"
+                                            placeholder="เช่น เด็กอายุ 2-3 ปี"
+                                            value={ageForm.label}
+                                            onChange={(e) =>
+                                                setAgeForm((prev) => ({ ...prev, label: e.target.value }))
+                                            }
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 block mb-1">
+                                        คำอธิบายสั้น ๆ
+                                    </label>
+                                    <textarea
+                                        className="w-full p-2.5 bg-white border-2 border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-400"
+                                        rows={2}
+                                        value={ageForm.desc}
+                                        onChange={(e) =>
+                                            setAgeForm((prev) => ({ ...prev, desc: e.target.value }))
+                                        }
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 block mb-1">
+                                            สี (color)
+                                        </label>
+                                        <select
+                                            className="w-full p-2.5 bg-white border-2 border-slate-200 rounded-xl text-sm"
+                                            value={ageForm.color}
+                                            onChange={(e) =>
+                                                setAgeForm((prev) => ({ ...prev, color: e.target.value }))
+                                            }
+                                        >
+                                            <option value="green">เขียว</option>
+                                            <option value="blue">ฟ้า</option>
+                                            <option value="pink">ชมพู</option>
+                                            <option value="purple">ม่วง</option>
+                                            <option value="yellow">เหลือง</option>
+                                            <option value="red">แดง</option>
+                                            <option value="teal">เขียวอมฟ้า</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 block mb-1">
+                                            ลำดับแสดง (sort_order)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full p-2.5 bg-white border-2 border-slate-200 rounded-xl text-sm"
+                                            value={ageForm.sortOrder}
+                                            onChange={(e) =>
+                                                setAgeForm((prev) => ({
+                                                    ...prev,
+                                                    sortOrder: parseInt(e.target.value || '0', 10),
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={ageSaving}
+                                    className="w-full mt-1 bg-emerald-500 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-600 transition-all disabled:opacity-60"
+                                >
+                                    {ageForm.id ? 'บันทึกการแก้ไขช่วงอายุ' : 'เพิ่มช่วงอายุใหม่'}
+                                </button>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             {/* ✅ 4. เพิ่มส่วนแสดงผล Modal Bulk Upload */}
             <AnimatePresence>
                 {showBulkUpload && (
-                    <BulkUploadForm 
+                    <BulkUploadForm
                         categories={allCategories}
                         onClose={() => setShowBulkUpload(false)}
                         onSuccess={() => {
@@ -487,7 +819,7 @@ export default function AdminDashboard() {
                                         <p className="text-indigo-600 font-bold text-sm">เพื่อดาวน์โหลดไฟล์ PDF</p>
                                     </div>
                                 </div>
-                                <a href={preview.pdfUrl} target="_blank" className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:shadow-xl hover:-translate-y-0.5 transition-all text-sm group">
+                                <a href={preview.pdfUrl} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:shadow-xl hover:-translate-y-0.5 transition-all text-sm group">
                                     <UploadCloud size={20} className="group-hover:animate-bounce" /> เปิดไฟล์ PDF
                                 </a>
                             </div>

@@ -1,0 +1,261 @@
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+// นำเข้าไอคอนจาก Lucide
+import { 
+  ArrowLeft, Search, Loader, 
+  BookOpen, Calculator, FlaskConical, Palette, 
+  Music, Dumbbell, Languages, Globe, Puzzle, Shapes, Sparkles, CheckCircle2, Cloud, Sun,
+  ChevronLeft, ChevronRight
+} from 'lucide-react';
+import { API } from '../services/api'; 
+
+// ฟังก์ชันเลือกธีมสี
+const getStyle = (index) => {
+  const styles = [
+    { color: 'purple', icon: BookOpen,     bg: 'bg-purple-50',   border: 'border-purple-200', text: 'text-purple-600', subText: 'text-purple-500', iconBg: 'bg-purple-100', ring: 'ring-purple-200' },
+    { color: 'blue',   icon: Calculator,   bg: 'bg-sky-50',      border: 'border-sky-200',    text: 'text-sky-600',    subText: 'text-sky-500',    iconBg: 'bg-sky-100',    ring: 'ring-sky-200' },
+    { color: 'green',  icon: FlaskConical, bg: 'bg-emerald-50',  border: 'border-emerald-200', text: 'text-emerald-600', subText: 'text-emerald-500', iconBg: 'bg-emerald-100', ring: 'ring-emerald-200' },
+    { color: 'pink',   icon: Palette,      bg: 'bg-rose-50',     border: 'border-rose-200',    text: 'text-rose-600',    subText: 'text-rose-500',    iconBg: 'bg-rose-100',    ring: 'ring-rose-200' },
+    { color: 'yellow', icon: Shapes,       bg: 'bg-amber-50',    border: 'border-amber-200',   text: 'text-amber-600',   subText: 'text-amber-500',   iconBg: 'bg-amber-100',   ring: 'ring-amber-200' },
+    { color: 'orange', icon: Puzzle,       bg: 'bg-orange-50',   border: 'border-orange-200',  text: 'text-orange-600',  subText: 'text-orange-500',  iconBg: 'bg-orange-100',  ring: 'ring-orange-200' },
+    { color: 'teal',   icon: Globe,        bg: 'bg-teal-50',     border: 'border-teal-200',    text: 'text-teal-600',    subText: 'text-teal-500',    iconBg: 'bg-teal-100',    ring: 'ring-teal-200' },
+    { color: 'indigo', icon: Languages,    bg: 'bg-indigo-50',   border: 'border-indigo-200',  text: 'text-indigo-600',  subText: 'text-indigo-500',  iconBg: 'bg-indigo-100',  ring: 'ring-indigo-200' },
+  ];
+  return styles[index % styles.length];
+};
+
+export default function CategorySelection({ ageRange, onBack, onSearch }) {
+  const [categories, setCategories] = useState([]);
+  const [selected, setSelected] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // ✅ Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8; // แสดงหน้าละ 8 วิชา
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setLoading(true);
+      try {
+        const allCats = await API.getCategories();
+        const filteredCats = allCats.filter(c => {
+             const catAge = c.ageGroup || c.age_group; 
+             return catAge === ageRange;
+        });
+        setCategories(filteredCats);
+        setCurrentPage(1); // รีเซ็ตหน้าเมื่อข้อมูลเปลี่ยน
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+      }
+      setLoading(false);
+    };
+
+    fetchCategories();
+  }, [ageRange]);
+
+  const toggleCat = (catName) => {
+    setSelected(prev => prev.includes(catName) ? prev.filter(x => x !== catName) : [...prev, catName]);
+  };
+
+  // ✅ Pagination Logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = categories.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(categories.length / itemsPerPage);
+
+  const goToNextPage = () => { if (currentPage < totalPages) setCurrentPage(prev => prev + 1); };
+  const goToPrevPage = () => { if (currentPage > 1) setCurrentPage(prev => prev - 1); };
+  const goToPage = (n) => setCurrentPage(n);
+
+  const getPageNumbers = () => {
+      const pageNumbers = [];
+      for (let i = 1; i <= totalPages; i++) {
+          pageNumbers.push(i);
+      }
+      return pageNumbers;
+  };
+
+
+  return (
+    <div className="h-full w-full flex flex-col relative bg-[#FDFBF7] overflow-hidden">
+      
+      {/* Background Decor */}
+      <div className="absolute top-0 right-0 w-full h-full overflow-hidden pointer-events-none">
+          <div className="absolute top-10 right-[5%] text-rose-200/40 animate-pulse hidden md:block"><Sparkles size={100} strokeWidth={1} /></div>
+          <div className="absolute bottom-20 left-[5%] text-sky-200/40 hidden md:block animate-[bounce_8s_infinite]"><Cloud size={120} fill="currentColor" strokeWidth={0} /></div>
+      </div>
+
+      {/* 1. Header Section */}
+      <div className="flex-none pt-4 pb-2 px-6 md:px-10 z-10">
+        <div className="w-full flex flex-col md:flex-row justify-between items-center gap-4">
+            
+            {/* Title & Back Button */}
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-4 text-center md:text-left">
+                <button 
+                    onClick={onBack} 
+                    className="group flex items-center justify-center w-12 h-12 rounded-full bg-white border-[3px] border-slate-100 text-slate-400 hover:text-rose-500 hover:border-rose-200 shadow-sm transition-all hover:scale-110"
+                >
+                    <ArrowLeft size={24} strokeWidth={3} />
+                </button>
+
+                <div>
+                    <motion.div 
+                        initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                        className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-full border border-slate-100 shadow-sm mb-1"
+                    >
+                        <div className="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></div>
+                        <span className="text-slate-500 font-bold text-xs">
+                            ห้องเรียนน้อง {ageRange}
+                        </span>
+                    </motion.div>
+                    
+                    <h1 className="text-3xl md:text-4xl font-black text-slate-700 leading-tight">
+                        <span className="text-indigo-500">อยากเก่ง</span>
+                        <span className="text-rose-400">วิชา</span>
+                        <span className="text-teal-500">ไหนบ้าง?</span>
+                    </h1>
+                </div>
+            </div>
+
+            {/* Counter Badge */}
+            <div className="bg-white/80 backdrop-blur-sm px-6 py-2 rounded-2xl border-[3px] border-slate-100 flex items-center gap-3 shadow-sm">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">เลือกแล้ว</span>
+                <span className="text-3xl font-black text-rose-500">{selected.length}</span>
+                <span className="text-xs font-bold text-slate-400">วิชา</span>
+            </div>
+        </div>
+      </div>
+
+      {/* 2. Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-2 pt-2 custom-scrollbar">
+         <div className="w-full h-full flex flex-col justify-center">
+            
+            {loading ? (
+                <div className="flex flex-col items-center justify-center py-10 h-full">
+                    <Loader size={48} className="text-rose-400 animate-spin mb-4"/>
+                    <p className="text-slate-400 font-bold text-lg animate-pulse">กำลังจัดเตรียมห้องเรียน...</p>
+                </div>
+            ) : categories.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center opacity-60">
+                     <div className="bg-slate-100 p-6 rounded-full mb-4">
+                        <Search size={48} className="text-slate-300"/>
+                     </div>
+                     <h3 className="text-slate-500 font-bold text-xl">ยังไม่มีวิชาในหมวดนี้</h3>
+                </div>
+            ) : (
+                <AnimatePresence mode='wait'>
+                    <motion.div 
+                        key={currentPage}
+                        initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}
+                        /* ✅ Grid แบบพอดีจอ (2 แถว x 4 คอลัมน์) */
+                        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 w-full max-w-[1400px] mx-auto h-[calc(100%-20px)] content-start"
+                    >
+                        {currentItems.map((cat, index) => {
+                            const isActive = selected.includes(cat.name);
+                            const style = getStyle(index); 
+                            const Icon = style.icon;
+
+                            return (
+                                <motion.div
+                                    key={cat.id}
+                                    whileHover={{ scale: 1.02, y: -4 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => toggleCat(cat.name)}
+                                    className={`
+                                        relative p-4 rounded-[2rem] cursor-pointer 
+                                        flex flex-col items-center justify-center text-center
+                                        transition-all duration-300 border-[3px] group aspect-[4/3]
+                                        ${isActive 
+                                            ? `bg-white border-rose-400 shadow-lg ring-4 ring-rose-100 z-10` 
+                                            : `${style.bg} ${style.border} hover:border-white hover:shadow-md`
+                                        }
+                                    `}
+                                >
+                                    {/* Active Indicator */}
+                                    <AnimatePresence>
+                                        {isActive && (
+                                            <motion.div 
+                                                initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                                                className="absolute top-3 right-3 text-rose-500 bg-white rounded-full p-0.5 shadow-sm"
+                                            >
+                                                <CheckCircle2 size={24} strokeWidth={3} fill="currentColor" className="text-white bg-rose-500 rounded-full" />
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+
+                                    {/* Icon */}
+                                    <div className={`
+                                        mb-3 p-3 rounded-full shadow-sm transition-transform duration-300
+                                        ${isActive ? 'bg-rose-100 scale-110' : `${style.iconBg} group-hover:scale-110`}
+                                    `}>
+                                        <Icon className={`${isActive ? 'text-rose-500' : style.text} w-10 h-10 md:w-12 md:h-12 stroke-[2.5px]`} />
+                                    </div>
+                                    
+                                    {/* Text */}
+                                    <h3 className={`text-lg md:text-xl font-bold leading-tight ${isActive ? 'text-rose-600' : 'text-slate-600'}`}>
+                                        {cat.name}
+                                    </h3>
+                                </motion.div>
+                            );
+                        })}
+                    </motion.div>
+                </AnimatePresence>
+            )}
+         </div>
+      </div>
+
+      {/* 3. Footer Area (Pagination & Action Button) */}
+      <div className="absolute bottom-6 left-0 right-0 px-4 z-50 flex flex-col items-center gap-4 pointer-events-none">
+        
+        {/* ✅ Pagination Controls (แสดงเมื่อมีมากกว่า 1 หน้า) */}
+        {!loading && totalPages > 1 && (
+            <div className="pointer-events-auto flex items-center gap-2 bg-white/90 backdrop-blur px-4 py-1.5 rounded-full shadow-md border border-slate-100 mb-2">
+                <button onClick={goToPrevPage} disabled={currentPage === 1} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all border ${currentPage === 1 ? 'text-slate-300 border-slate-200' : 'text-rose-500 border-rose-200 hover:bg-rose-50'}`}>
+                    <ChevronLeft size={18} strokeWidth={2.5} />
+                </button>
+                <div className="flex items-center gap-1.5">
+                    {getPageNumbers().map((number) => (
+                        <button key={number} onClick={() => goToPage(number)} className={`w-8 h-8 rounded-full font-bold text-sm transition-all border ${currentPage === number ? 'bg-rose-500 text-white border-rose-500 shadow-sm' : 'bg-white text-slate-500 border-slate-100 hover:bg-slate-50 hover:text-rose-500'}`}>
+                            {number}
+                        </button>
+                    ))}
+                </div>
+                <button onClick={goToNextPage} disabled={currentPage === totalPages} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all border ${currentPage === totalPages ? 'text-slate-300 border-slate-200' : 'text-rose-500 border-rose-200 hover:bg-rose-50'}`}>
+                    <ChevronRight size={18} strokeWidth={2.5} />
+                </button>
+            </div>
+        )}
+
+        {/* Action Button */}
+        <AnimatePresence>
+            {selected.length > 0 && (
+                <motion.button
+                    initial={{ y: 50, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: 50, opacity: 0 }}
+                    onClick={() => onSearch(selected)}
+                    className="
+                        pointer-events-auto
+                        flex items-center gap-3
+                        bg-gradient-to-r from-rose-500 to-indigo-600 
+                        text-white text-lg font-bold 
+                        py-3 px-8 rounded-full 
+                        shadow-xl shadow-rose-400/50 
+                        border-[4px] border-white/40 backdrop-blur-md
+                        hover:scale-105 hover:-translate-y-1 active:scale-95 transition-all
+                    "
+                >
+                    <Search size={24} strokeWidth={3} /> 
+                    <span>ไปทำใบงานกันเลย!</span>
+                    <span className="bg-white/25 px-2 py-0.5 rounded-lg text-sm min-w-[30px] text-center">
+                        {selected.length}
+                    </span>
+                </motion.button>
+            )}
+        </AnimatePresence>
+
+      </div>
+      
+    </div>
+  );
+}

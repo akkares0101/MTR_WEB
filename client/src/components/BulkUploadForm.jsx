@@ -3,27 +3,39 @@ import { API } from '../services/api';
 import { X, UploadCloud, Check } from 'lucide-react';
 
 export default function BulkUploadForm({ categories, onClose, onSuccess }) {
-    // เก็บอายุเป็น Array (เพราะเลือกได้หลายอัน)
+    // เก็บค่าที่เลือกเป็น Array
     const [selectedAges, setSelectedAges] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState('');
     const [files, setFiles] = useState(null);
     const [uploading, setUploading] = useState(false);
 
-    // รายชื่อตัวเลือกอายุ
-    const ageOptions = ["เตรียมอนุบาล", "2-3", "3-4", "4-5", "5-6"];
+    // ✅ กำหนดตัวเลือกทั้งหมด (แยก value กับ label เพื่อความสวยงาม)
+    const optionsList = [
+        // กลุ่มอายุ
+        { value: "เตรียมอนุบาล", label: "เตรียมอนุบาล" },
+        { value: "2-3", label: "2-3 ปี" },
+        { value: "3-4", label: "3-4 ปี" },
+        { value: "4-5", label: "4-5 ปี" },
+        { value: "5-6", label: "5-6 ปี" },
+        // กลุ่มพิเศษ (เพิ่มให้แล้วครับ)
+        { value: "เตรียมป1", label: "เตรียมขึ้น ป.1" },
+        { value: "เสริมเชาว์", label: "เสริมเชาว์ฯ" },
+        { value: "บัตรคำ", label: "บัตรคำ" },
+        { value: "ตามหน่วย", label: "ใบงานตามหน่วย" }
+    ];
 
-    const toggleAge = (age) => {
-        if (selectedAges.includes(age)) {
-            setSelectedAges(selectedAges.filter(a => a !== age)); // เอาออก
+    const toggleAge = (value) => {
+        if (selectedAges.includes(value)) {
+            setSelectedAges(selectedAges.filter(a => a !== value)); // เอาออก
         } else {
-            setSelectedAges([...selectedAges, age]); // ใส่เพิ่ม
+            setSelectedAges([...selectedAges, value]); // ใส่เพิ่ม
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!selectedCategory || !files || files.length === 0 || selectedAges.length === 0) {
-            alert("กรุณากรอกข้อมูลให้ครบ (อายุ, หมวด, ไฟล์)");
+            alert("กรุณากรอกข้อมูลให้ครบ (ระดับชั้น, หมวด, ไฟล์)");
             return;
         }
 
@@ -67,26 +79,26 @@ export default function BulkUploadForm({ categories, onClose, onSuccess }) {
                         </select>
                     </div>
 
-                    {/* 2. เลือกช่วงอายุ (Multi-select Checkbox) */}
+                    {/* 2. เลือกระดับชั้น (มีทั้งอายุ และหมวดพิเศษ) */}
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">ระดับชั้น (เลือกได้มากกว่า 1)</label>
                         <div className="grid grid-cols-2 gap-2">
-                            {ageOptions.map(age => (
+                            {optionsList.map((item) => (
                                 <div 
-                                    key={age}
-                                    onClick={() => toggleAge(age)}
+                                    key={item.value}
+                                    onClick={() => toggleAge(item.value)}
                                     className={`cursor-pointer p-2 rounded-lg border-2 flex items-center gap-2 transition-all ${
-                                        selectedAges.includes(age) 
+                                        selectedAges.includes(item.value) 
                                         ? 'border-blue-500 bg-blue-50 text-blue-700' 
                                         : 'border-gray-200 hover:border-gray-300'
                                     }`}
                                 >
-                                    <div className={`w-5 h-5 rounded border flex items-center justify-center ${
-                                        selectedAges.includes(age) ? 'bg-blue-500 border-blue-500' : 'border-gray-300'
+                                    <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${
+                                        selectedAges.includes(item.value) ? 'bg-blue-500 border-blue-500' : 'border-gray-300'
                                     }`}>
-                                        {selectedAges.includes(age) && <Check size={14} className="text-white" />}
+                                        {selectedAges.includes(item.value) && <Check size={14} className="text-white" />}
                                     </div>
-                                    <span className="text-sm font-medium">{age} ปี</span>
+                                    <span className="text-sm font-medium">{item.label}</span>
                                 </div>
                             ))}
                         </div>

@@ -1,0 +1,237 @@
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { 
+  Baby, Shapes, Rocket, Star, 
+  Backpack, Brain, Layers, FolderOpen,
+  Cloud, Sun, Sparkles, Settings,
+  ChevronLeft, ChevronRight
+} from 'lucide-react';
+
+const ageOptions = [
+  { id: '2-3', label: '2-3 ปี', desc: 'วัยเตาะแตะ', color: 'green', icon: Baby },
+  { id: '3-4', label: '3-4 ปี', desc: 'อนุบาล 1', color: 'orange', icon: Shapes },
+  { id: '4-5', label: '4-5 ปี', desc: 'อนุบาล 2', color: 'blue', icon: Rocket },
+  { id: '5-6', label: '5-6 ปี', desc: 'อนุบาล 3', color: 'pink', icon: Star },
+  { id: 'เตรียมป1', label: 'เตรียมขึ้น ป.1', desc: 'สอบเข้า', color: 'red', icon: Backpack },
+  { id: 'เสริมเชาว์', label: 'เสริมเชาว์ฯ', desc: 'ฝึกสมอง', color: 'purple', icon: Brain },
+  { id: 'บัตรคำ', label: 'บัตรคำ', desc: 'คำศัพท์', color: 'yellow', icon: Layers },
+  { id: 'ตามหน่วย', label: 'ใบงาน', desc: 'การเรียนรู้', color: 'teal', icon: FolderOpen },
+  // ลองเพิ่มข้อมูลจำลองเพื่อเทส Pagination 
+   { id: 'test1', label: 'ทดสอบ 1', desc: 'หน้า 2', color: 'green', icon: Baby },
+   { id: 'test2', label: 'ทดสอบ 2', desc: 'หน้า 2', color: 'blue', icon: Rocket },
+];
+
+const AgeCard = ({ id, label, desc, color, icon: Icon, onClick }) => {
+  const colorMap = {
+    green:  { bg: 'bg-emerald-50',  border: 'border-emerald-200', text: 'text-emerald-600', subText: 'text-emerald-500', iconBg: 'bg-emerald-100' },
+    orange: { bg: 'bg-orange-50',   border: 'border-orange-200',  text: 'text-orange-600',  subText: 'text-orange-600',  iconBg: 'bg-orange-100' },
+    blue:   { bg: 'bg-sky-50',      border: 'border-sky-200',     text: 'text-sky-600',     subText: 'text-sky-500',     iconBg: 'bg-sky-100' },
+    pink:   { bg: 'bg-rose-50',     border: 'border-rose-200',    text: 'text-rose-600',    subText: 'text-rose-500',    iconBg: 'bg-rose-100' },
+    purple: { bg: 'bg-purple-50',   border: 'border-purple-200',  text: 'text-purple-600',  subText: 'text-purple-500',  iconBg: 'bg-purple-100' },
+    yellow: { bg: 'bg-amber-50',    border: 'border-amber-200',   text: 'text-amber-600',   subText: 'text-amber-500',   iconBg: 'bg-amber-100' },
+    red:    { bg: 'bg-red-50',      border: 'border-red-200',     text: 'text-red-600',     subText: 'text-red-500',     iconBg: 'bg-red-100' },
+    teal:   { bg: 'bg-teal-50',     border: 'border-teal-200',    text: 'text-teal-600',    subText: 'text-teal-500',    iconBg: 'bg-teal-100' },
+  };
+  const c = colorMap[color] || colorMap.green;
+
+  return (
+    <motion.div
+      whileHover={{ scale: 1.05, y: -5 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={() => onClick(id)}
+      className={`
+        relative flex flex-col items-center justify-center 
+        p-3 md:p-4 h-full w-full
+        ${c.bg} rounded-[2rem] cursor-pointer 
+        border-[3px] ${c.border} 
+        shadow-sm hover:shadow-md
+        transition-all duration-300 group overflow-hidden
+      `}
+    >
+      {/* Background Shapes */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden rounded-[2rem]">
+         <div className={`absolute -top-10 -right-10 w-32 h-32 ${c.text} opacity-[0.05] rounded-full blur-3xl`}></div>
+         <div className={`absolute -bottom-10 -left-10 w-24 h-24 ${c.text} opacity-[0.05] rounded-full blur-3xl`}></div>
+      </div>
+      
+      {/* Icon Circle (Compact Size) */}
+      <div className={`
+        mb-2 p-3
+        ${c.iconBg} rounded-full shadow-sm 
+        group-hover:scale-110 transition-transform duration-300 
+        border-[3px] border-white ring-2 ring-white/50
+      `}>
+        <Icon className={`${c.text} w-8 h-8 md:w-10 md:h-10 stroke-[2.5px]`} />
+      </div>
+      
+      {/* Text Content */}
+      <div className="text-center z-10 flex flex-col items-center gap-0.5">
+        <h3 className={`text-lg md:text-xl font-black ${c.text} leading-tight`}>
+            {label}
+        </h3>
+        
+        <div className={`inline-block px-2 py-0.5 bg-white/70 rounded-lg border border-white/60 backdrop-blur-sm mt-0.5`}>
+            <p className={`text-xs font-bold ${c.subText}`}>
+                {desc}
+            </p>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+export default function AgeSelection({ onSelectAge }) {
+  const navigate = useNavigate();
+
+  // ✅ Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8; // บังคับ 8 รายการต่อหน้า
+
+  // ✅ Pagination Logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = ageOptions.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(ageOptions.length / itemsPerPage);
+
+  const goToNextPage = () => { if (currentPage < totalPages) setCurrentPage(prev => prev + 1); };
+  const goToPrevPage = () => { if (currentPage > 1) setCurrentPage(prev => prev - 1); };
+  const goToPage = (n) => setCurrentPage(n);
+
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+    }
+    return pageNumbers;
+  };
+
+  return (
+    <div className="h-full w-full flex flex-col items-center justify-center relative bg-[#FDFBF7] overflow-hidden"> 
+      
+      {/* Background Decor */}
+      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none"></div>
+      <div className="absolute top-10 left-[-2%] text-sky-200 animate-[bounce_8s_infinite] hidden md:block opacity-60 pointer-events-none"><Cloud size={100} fill="currentColor" strokeWidth={0} /></div>
+      <div className="absolute top-20 right-[-2%] text-amber-200 animate-[spin_12s_linear_infinite] hidden md:block opacity-60 pointer-events-none"><Sun size={80} fill="currentColor" strokeWidth={0} /></div>
+      <div className="absolute bottom-10 right-[5%] text-indigo-100 animate-[pulse_6s_infinite] hidden lg:block opacity-50 pointer-events-none"><Cloud size={80} fill="currentColor" strokeWidth={0} /></div>
+
+      {/* Content Wrapper */}
+      <div className="w-full max-w-7xl flex flex-col items-center justify-center py-4 z-10 h-full">
+        
+        {/* 1. Header Section (Compact) */}
+        <div className="text-center mb-4 relative z-10 flex-none">
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-full shadow-sm mb-2 border border-slate-100"
+            >
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                <span className="text-slate-400 font-bold text-xs tracking-wide">
+                    Kids Learning Media & Training
+                </span>
+            </motion.div>
+            
+            <motion.h1 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: 'spring' }}
+              className="text-5xl md:text-7xl font-black text-slate-700 mb-1 tracking-tight"
+            >
+              <span className="text-indigo-500">ห้องเรียน</span>
+              <span className="text-pink-400">แห่ง</span>
+              <span className="text-teal-500">การเรียนรู้</span>
+            </motion.h1>
+            
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-slate-500 text-base font-bold max-w-2xl mx-auto"
+            >
+              เลือกห้องเรียนที่เหมาะสมกับน้องๆ
+            </motion.p>
+        </div>
+
+        {/* 2. Grid Cards ปรับขนาดจ้า */}
+        <div className="w-full max-w-[1300px] px-4 md:px-8 h-[calc(100%-140px)] flex flex-col justify-start"> {/* ใช้ h-calc เพื่อกันที่ให้ Footer */}
+            <AnimatePresence mode='wait'>
+                <motion.div 
+                    key={currentPage}
+                    initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}
+                    className="grid grid-cols-2 md:grid-cols-4 gap-4 auto-rows-fr h-full content-start"
+                >
+                    {currentItems.map((opt, index) => (
+                    <motion.div
+                        key={opt.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        // Aspect ratio [4/3] to match compact landscape style
+                        className="aspect-[4/3]" 
+                    >
+                        <AgeCard 
+                            id={opt.id}
+                            label={opt.label} 
+                            desc={opt.desc}
+                            color={opt.color} 
+                            icon={opt.icon} 
+                            onClick={onSelectAge} 
+                        />
+                    </motion.div>
+                    ))}
+                </motion.div>
+            </AnimatePresence>
+        </div>
+
+        {/* 3. Footer Area (Pagination & Admin Button) */}
+        <div className="flex-none mt-2 flex flex-col items-center gap-3 w-full">
+            
+            {/* ✅ Pagination Bar (แสดงเฉพาะถ้ามีหน้ามากกว่า 1) */}
+            {totalPages > 1 && (
+                <div className="flex items-center gap-2 bg-white/90 backdrop-blur px-4 py-1.5 rounded-full shadow-md border border-slate-100">
+                    <button onClick={goToPrevPage} disabled={currentPage === 1} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all border ${currentPage === 1 ? 'text-slate-300 border-slate-200' : 'text-rose-500 border-rose-200 hover:bg-rose-50'}`}>
+                        <ChevronLeft size={18} strokeWidth={2.5} />
+                    </button>
+
+                    <div className="flex items-center gap-1.5">
+                        {getPageNumbers().map((number) => (
+                            <button
+                                key={number}
+                                onClick={() => goToPage(number)}
+                                className={`w-8 h-8 rounded-full font-bold text-sm transition-all border ${
+                                    currentPage === number 
+                                        ? 'bg-rose-500 text-white border-rose-500 shadow-sm' 
+                                        : 'bg-white text-slate-500 border-slate-100 hover:bg-slate-50 hover:text-rose-500'
+                                }`}
+                            >
+                                {number}
+                            </button>
+                        ))}
+                    </div>
+
+                    <button onClick={goToNextPage} disabled={currentPage === totalPages} className={`w-8 h-8 flex items-center justify-center rounded-full transition-all border ${currentPage === totalPages ? 'text-slate-300 border-slate-200' : 'text-rose-500 border-rose-200 hover:bg-rose-50'}`}>
+                        <ChevronRight size={18} strokeWidth={2.5} />
+                    </button>
+                </div>
+            )}
+
+            {/* Admin Button */}
+            <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.8 }}
+            >
+                <button 
+                    onClick={() => navigate('/admin/login')}
+                    className="group flex items-center gap-2 text-slate-400 hover:text-indigo-500 font-bold text-xs px-4 py-1.5 rounded-full transition-all duration-300 hover:bg-white hover:shadow-sm border border-transparent hover:border-indigo-100"
+                >
+                    <Settings size={14} className="group-hover:rotate-90 transition-transform duration-500" />
+                    <span>Admin Login</span>
+                </button>
+            </motion.div>
+        </div>
+
+      </div>
+    </div>
+  );
+}

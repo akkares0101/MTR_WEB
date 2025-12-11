@@ -1,120 +1,406 @@
-import { motion } from 'framer-motion';
-// ใช้ไอคอนจาก Lucide แทนอิโมจิ
-import { 
-  Baby, Shapes, Rocket, Star, 
-  Backpack, Brain, Layers, FolderOpen,
-  Cloud, Sun, Sparkles 
-} from 'lucide-react';
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import {
+  Baby,
+  Shapes,
+  Rocket,
+  Star,
+  Backpack,
+  Brain,
+  Layers,
+  FolderOpen,
+  Cloud,
+  Sun,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { API } from "../services/api"; // ✅ ต่อกับ API
 
-const ageOptions = [
-  // แถวที่ 1
-  { id: '2-3', label: '2-3 ปี', desc: 'วัยเตาะแตะ', color: 'green', icon: Baby },
-  { id: '3-4', label: '3-4 ปี', desc: 'อนุบาล 1', color: 'orange', icon: Shapes },
-  { id: '4-5', label: '4-5 ปี', desc: 'อนุบาล 2', color: 'blue', icon: Rocket },
-  { id: '5-6', label: '5-6 ปี', desc: 'อนุบาล 3', color: 'pink', icon: Star },
-  // แถวที่ 2
-  { id: 'เตรียมป1', label: 'เตรียมขึ้น ป.1', desc: 'สอบเข้า', color: 'red', icon: Backpack },
-  { id: 'เสริมเชาว์', label: 'เสริมเชาว์ฯ', desc: 'ฝึกสมอง', color: 'purple', icon: Brain },
-  { id: 'บัตรคำ', label: 'บัตรคำ', desc: 'คำศัพท์', color: 'yellow', icon: Layers },
-  { id: 'ตามหน่วย', label: 'ใบงานตามหน่วย', desc: 'การเรียนรู้', color: 'teal', icon: FolderOpen },
+// ✅ แมปชื่อ icon จาก DB → เป็น component จริง
+const ICON_MAP = {
+  Baby,
+  Shapes,
+  Rocket,
+  Star,
+  Backpack,
+  Brain,
+  Layers,
+  FolderOpen,
+};
+
+// ✅ ค่าเริ่มต้น (ใช้ถ้า DB ยังไม่มีข้อมูล หรือโหลดไม่สำเร็จ)
+const DEFAULT_AGE_OPTIONS = [
+  { id: "2-3", label: "2-3 ปี", desc: "วัยเตาะแตะ", color: "green", icon: Baby },
+  { id: "3-4", label: "3-4 ปี", desc: "อนุบาล 1", color: "orange", icon: Shapes },
+  { id: "4-5", label: "4-5 ปี", desc: "อนุบาล 2", color: "blue", icon: Rocket },
+  { id: "5-6", label: "5-6 ปี", desc: "อนุบาล 3", color: "pink", icon: Star },
+  { id: "เตรียมป1", label: "เตรียมขึ้น ป.1", desc: "สอบเข้า", color: "red", icon: Backpack },
+  { id: "เสริมเชาว์", label: "เสริมเชาว์ฯ", desc: "ฝึกสมอง", color: "purple", icon: Brain },
+  { id: "บัตรคำ", label: "บัตรคำ", desc: "คำศัพท์", color: "yellow", icon: Layers },
+  { id: "ตามหน่วย", label: "ใบงาน", desc: "การเรียนรู้", color: "teal", icon: FolderOpen },
 ];
 
 const AgeCard = ({ id, label, desc, color, icon: Icon, onClick }) => {
   const colorMap = {
-    green: { bg: 'bg-emerald-50/80', border: 'border-emerald-200', text: 'text-emerald-800', desc: 'text-emerald-600', icon: 'text-emerald-500', shadow: 'shadow-emerald-100', iconBg: 'bg-emerald-100' },
-    orange: { bg: 'bg-orange-50/80', border: 'border-orange-200', text: 'text-orange-800', desc: 'text-orange-600', icon: 'text-orange-500', shadow: 'shadow-orange-100', iconBg: 'bg-orange-100' },
-    blue: { bg: 'bg-sky-50/80', border: 'border-sky-200', text: 'text-sky-800', desc: 'text-sky-600', icon: 'text-sky-500', shadow: 'shadow-sky-100', iconBg: 'bg-sky-100' },
-    pink: { bg: 'bg-rose-50/80', border: 'border-rose-200', text: 'text-rose-800', desc: 'text-rose-600', icon: 'text-rose-500', shadow: 'shadow-rose-100', iconBg: 'bg-rose-100' },
-    purple: { bg: 'bg-purple-50/80', border: 'border-purple-200', text: 'text-purple-800', desc: 'text-purple-600', icon: 'text-purple-500', shadow: 'shadow-purple-100', iconBg: 'bg-purple-100' },
-    yellow: { bg: 'bg-amber-50/80', border: 'border-amber-200', text: 'text-amber-800', desc: 'text-amber-600', icon: 'text-amber-500', shadow: 'shadow-amber-100', iconBg: 'bg-amber-100' },
-    red: { bg: 'bg-red-50/80', border: 'border-red-200', text: 'text-red-800', desc: 'text-red-600', icon: 'text-red-500', shadow: 'shadow-red-100', iconBg: 'bg-red-100' },
-    teal: { bg: 'bg-teal-50/80', border: 'border-teal-200', text: 'text-teal-800', desc: 'text-teal-600', icon: 'text-teal-500', shadow: 'shadow-teal-100', iconBg: 'bg-teal-100' },
+    green: {
+      border: "border-emerald-200",
+      text: "text-emerald-600",
+      subText: "text-emerald-500",
+      iconBg: "bg-emerald-100",
+      hover: "hover:border-emerald-400",
+    },
+    orange: {
+      border: "border-orange-200",
+      text: "text-orange-600",
+      subText: "text-orange-600",
+      iconBg: "bg-orange-100",
+      hover: "hover:border-orange-400",
+    },
+    blue: {
+      border: "border-sky-200",
+      text: "text-sky-600",
+      subText: "text-sky-500",
+      iconBg: "bg-sky-100",
+      hover: "hover:border-sky-400",
+    },
+    pink: {
+      border: "border-rose-200",
+      text: "text-rose-600",
+      subText: "text-rose-500",
+      iconBg: "bg-rose-100",
+      hover: "hover:border-rose-400",
+    },
+    purple: {
+      border: "border-purple-200",
+      text: "text-purple-600",
+      subText: "text-purple-500",
+      iconBg: "bg-purple-100",
+      hover: "hover:border-purple-400",
+    },
+    yellow: {
+      border: "border-amber-200",
+      text: "text-amber-600",
+      subText: "text-amber-500",
+      iconBg: "bg-amber-100",
+      hover: "hover:border-amber-400",
+    },
+    red: {
+      border: "border-red-200",
+      text: "text-red-600",
+      subText: "text-red-500",
+      iconBg: "bg-red-100",
+      hover: "hover:border-red-400",
+    },
+    teal: {
+      border: "border-teal-200",
+      text: "text-teal-600",
+      subText: "text-teal-500",
+      iconBg: "bg-teal-100",
+      hover: "hover:border-teal-400",
+    },
   };
-  const c = colorMap[color];
+  const c = colorMap[color] || colorMap.green;
 
   return (
     <motion.div
-      whileHover={{ scale: 1.03, y: -3 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={{ scale: 1.03, y: -4 }}
+      whileTap={{ scale: 0.96 }}
       onClick={() => onClick(id)}
       className={`
-        relative flex flex-col items-center justify-center p-4 h-full
-        ${c.bg} backdrop-blur-sm rounded-2xl cursor-pointer 
-        border-2 ${c.border}
-        shadow-md ${c.shadow} hover:shadow-lg
-        transition-all duration-300 group
+        relative flex flex-col items-center justify-center 
+        p-3 sm:p-4 h-full w-full
+        bg-white rounded-[1.6rem] cursor-pointer 
+        border-[2.5px] ${c.border} ${c.hover}
+        shadow-sm hover:shadow-lg
+        transition-all duration-300 group overflow-hidden
       `}
     >
-      <div className={`absolute top-0 right-0 w-20 h-20 ${c.iconBg} opacity-20 rounded-full -mr-8 -mt-8 blur-xl transition-transform group-hover:scale-150`}></div>
-      
-      <div className={`mb-3 p-3 ${c.iconBg} rounded-xl shadow-sm group-hover:shadow-md transition-all duration-300 group-hover:-translate-y-1 ring-2 ring-white`}>
-        <Icon size={32} className={`${c.icon} stroke-[1.5px]`} />
+      <div
+        className={`
+          mb-2 p-2.5 sm:p-3
+          ${c.iconBg} rounded-full shadow-inner 
+          group-hover:scale-110 transition-transform duration-300 
+          border-2 border-white
+        `}
+      >
+        <Icon
+          className={`${c.text} w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 stroke-[2.5px]`}
+        />
       </div>
-      
-      <div className="text-center z-10">
-        <h3 className={`text-lg md:text-xl font-bold font-display ${c.text} mb-1 tracking-tight`}>
-            {label}
+
+      <div className="text-center z-10 flex flex-col items-center gap-0.5">
+        <h3 className="text-base sm:text-lg md:text-xl font-black text-slate-700 leading-tight">
+          {label}
         </h3>
-        <p className={`text-xs font-bold ${c.desc} opacity-80 uppercase tracking-wide`}>
+
+        <div className="inline-block px-2 py-0.5 bg-slate-50 rounded-lg border border-slate-100 mt-0.5">
+          <p className={`text-[11px] sm:text-xs font-bold ${c.subText}`}>
             {desc}
-        </p>
+          </p>
+        </div>
       </div>
     </motion.div>
   );
 };
 
 export default function AgeSelection({ onSelectAge }) {
+  const navigate = useNavigate();
+
+  // ✅ state สำหรับรายการอายุ (เริ่มต้นด้วยค่า default)
+  const [ageOptions, setAgeOptions] = useState(DEFAULT_AGE_OPTIONS);
+
+  // ✅ ดึงข้อมูลจาก DB
+  useEffect(() => {
+    const fetchAgeGroups = async () => {
+      try {
+        const ages = await API.getAgeGroups();
+        if (ages && ages.length > 0) {
+          const mapped = ages.map((ag) => {
+            const Icon = ICON_MAP[ag.icon] || Baby;
+            return {
+              id: ag.ageValue,
+              label: ag.label || ag.ageValue,
+              desc: ag.desc || "",
+              color: ag.color || "green",
+              icon: Icon,
+            };
+          });
+          setAgeOptions(mapped);
+        }
+      } catch (err) {
+        console.error("โหลด age-groups ไม่สำเร็จ ใช้ค่า default แทน", err);
+      }
+    };
+
+    fetchAgeGroups();
+  }, []);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+
+  // Pagination Logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = ageOptions.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(ageOptions.length / itemsPerPage) || 1;
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
+  };
+  const goToPrevPage = () => {
+    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
+  };
+  const goToPage = (n) => setCurrentPage(n);
+
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
+    return pageNumbers;
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center h-screen w-full px-4 relative overflow-hidden bg-slate-50/50">
-      
-      {/* Background Elements (ใช้ SVG Icons จางๆ) */}
-      <div className="absolute top-10 left-[5%] text-slate-200 animate-pulse hidden md:block"><Cloud size={100} strokeWidth={0.5} /></div>
-      <div className="absolute bottom-10 right-[5%] text-slate-200 animate-bounce duration-[4000ms] hidden md:block"><Sun size={80} strokeWidth={0.5} /></div>
-      
-      <div className="w-full max-w-5xl flex flex-col items-center justify-center h-full max-h-[800px]">
-        
-        <div className="text-center mb-6 relative z-10 shrink-0">
-            <motion.div 
+    <div
+      className="
+        h-full w-full 
+        flex flex-col items-center justify-center 
+        relative bg-[#FDFBF7]
+        overflow-y-auto md:overflow-hidden
+      "
+    >
+      {/* Background Decor */}
+      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none"></div>
+      <div className="absolute top-10 left-[-2%] text-sky-200 animate-[bounce_8s_infinite] hidden md:block opacity-60 pointer-events-none">
+        <Cloud size={100} fill="currentColor" strokeWidth={0} />
+      </div>
+      <div className="absolute top-20 right-[-2%] text-amber-200 animate-[spin_12s_linear_infinite] hidden md:block opacity-60 pointer-events-none">
+        <Sun size={80} fill="currentColor" strokeWidth={0} />
+      </div>
+      <div className="absolute bottom-10 right-[5%] text-indigo-100 animate-[pulse_6s_infinite] hidden lg:block opacity-50 pointer-events-none">
+        <Cloud size={80} fill="currentColor" strokeWidth={0} />
+      </div>
+
+      {/* Content Wrapper */}
+      <div className="w-full max-w-7xl flex flex-col items-center justify-center py-3 sm:py-4 px-3 sm:px-4 md:px-6 z-10 h-full">
+        {/* Header */}
+        <div className="text-center mb-3 sm:mb-4 relative z-10 flex-none">
+          <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 bg-white px-4 py-1.5 rounded-full shadow-sm mb-3 border border-slate-100"
-            >
-                <span className="flex h-2 w-2 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                </span>
-                <span className="text-slate-500 font-bold text-[10px] tracking-widest uppercase">Kids Learning Media & Training Co., Ltd. | Trang</span>
-            </motion.div>
-            
-            <h1 className="text-3xl md:text-5xl font-bold font-display text-slate-800 mb-2 tracking-tight drop-shadow-sm">
-            ห้องเรียนแห่งการเรียนรู้
-            </h1>
-            <p className="text-slate-500 text-sm md:text-base font-medium opacity-80">
-            เลือกห้องเรียนที่เหมาะสมกับน้องๆ ได้เลย
-            </p>
+            className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-full shadow-sm mb-2 border border-slate-100"
+          >
+            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+            <span className="text-slate-400 font-bold text-[11px] sm:text-xs tracking-wide">
+              Kids Learning Media & Training
+            </span>
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "spring" }}
+            className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-700 mb-1 tracking-tight"
+          >
+            <span className="text-indigo-500">ห้องเรียน</span>
+            <span className="text-pink-400">แห่ง</span>
+            <span className="text-teal-500">การเรียนรู้</span>
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-slate-500 text-sm sm:text-base font-bold max-w-2xl mx-auto px-2"
+          >
+            เลือกห้องเรียนที่เหมาะสมกับน้องๆ ตามช่วงวัยและรูปแบบการเรียนรู้
+          </motion.p>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5 w-full z-10 grow-0">
-            {ageOptions.map((opt, index) => (
+        {/* Grid Cards */}
+        <div className="w-full max-w-[1200px] flex-1 flex flex-col justify-start mt-1 md:mt-2">
+          <AnimatePresence mode="wait">
             <motion.div
-                key={opt.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.05, duration: 0.3 }}
-                className="aspect-[4/3] lg:aspect-auto lg:h-40"
+              key={currentPage}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="
+                grid 
+                grid-cols-2 
+                md:grid-cols-4 
+                gap-x-3 sm:gap-x-4 
+                gap-y-3 sm:gap-y-4 
+                auto-rows-fr 
+                min-h-[260px]
+                pb-2
+              "
             >
-                <AgeCard 
+              {currentItems.map((opt, index) => (
+                <motion.div
+                  key={opt.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="aspect-[4/3]"
+                >
+                  <AgeCard
                     id={opt.id}
-                    label={opt.label} 
+                    label={opt.label}
                     desc={opt.desc}
-                    color={opt.color} 
-                    icon={opt.icon} 
-                    onClick={onSelectAge} 
-                />
+                    color={opt.color}
+                    icon={opt.icon}
+                    onClick={onSelectAge}
+                  />
+                </motion.div>
+              ))}
             </motion.div>
-            ))}
+          </AnimatePresence>
         </div>
 
+        {/* Footer: Pagination & Admin Button */}
+        <div className="flex-none mt-2 sm:mt-3 flex flex-col items-center gap-2.5 sm:gap-3 w-full">
+          {totalPages > 1 && (
+            <div
+              className="
+                flex items-center gap-3 sm:gap-4 
+                bg-white/90 backdrop-blur 
+                px-4 sm:px-6 py-1.5 sm:py-2 
+                rounded-[1.6rem] sm:rounded-[2rem] 
+                shadow-md sm:shadow-lg 
+                border border-slate-100
+              "
+            >
+              {/* Prev */}
+              <button
+                onClick={goToPrevPage}
+                disabled={currentPage === 1}
+                className={`
+                  flex items-center justify-center rounded-full 
+                  transition-all border-2
+                  w-9 h-9 sm:w-11 sm:h-11
+                  ${
+                    currentPage === 1
+                      ? "text-slate-300 border-slate-100 cursor-not-allowed"
+                      : "text-rose-400 border-rose-100 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-300"
+                  }
+                `}
+              >
+                <ChevronLeft size={18} strokeWidth={3} className="sm:w-6 sm:h-6" />
+              </button>
+
+              {/* Page Numbers */}
+              <div className="flex items-center gap-1.5 sm:gap-3">
+                {getPageNumbers().map((number) => (
+                  <button
+                    key={number}
+                    onClick={() => goToPage(number)}
+                    className={`
+                      rounded-full font-black transition-all border-2
+                      w-9 h-9 sm:w-11 sm:h-11
+                      text-sm sm:text-base
+                      ${
+                        currentPage === number
+                          ? "bg-[#FF3366] text-white border-[#FF3366] shadow-md shadow-rose-200 scale-105 sm:scale-110"
+                          : "bg-white text-slate-400 border-slate-100 hover:text-rose-500 hover:border-rose-100"
+                      }
+                    `}
+                  >
+                    {number}
+                  </button>
+                ))}
+              </div>
+
+              {/* Next */}
+              <button
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+                className={`
+                  flex items-center justify-center rounded-full 
+                  transition-all border-2
+                  w-9 h-9 sm:w-11 sm:h-11
+                  ${
+                    currentPage === totalPages
+                      ? "text-slate-300 border-slate-100 cursor-not-allowed"
+                      : "text-rose-400 border-rose-100 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-300"
+                  }
+                `}
+              >
+                <ChevronRight size={18} strokeWidth={3} className="sm:w-6 sm:h-6" />
+              </button>
+            </div>
+          )}
+
+          {/* Admin Button */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8 }}
+          >
+            <button
+              onClick={() => navigate("/admin/login")}
+              className="
+                group flex items-center gap-1.5 
+                text-[11px] sm:text-xs 
+                text-slate-400 hover:text-indigo-500 
+                font-bold 
+                px-3.5 sm:px-4 py-1.5 
+                rounded-full 
+                transition-all duration-300 
+                hover:bg-white hover:shadow-sm 
+                border border-transparent hover:border-indigo-100
+              "
+            >
+              <Settings
+                size={14}
+                className="group-hover:rotate-90 transition-transform duration-500"
+              />
+              <span>Admin Login</span>
+            </button>
+          </motion.div>
+        </div>
       </div>
     </div>
   );
