@@ -31,16 +31,7 @@ const ICON_MAP = {
 };
 
 // ✅ ค่าเริ่มต้น (ใช้ถ้า DB ยังไม่มีข้อมูล หรือโหลดไม่สำเร็จ)
-const DEFAULT_AGE_OPTIONS = [
-  { id: "2-3", label: "2-3 ปี", desc: "วัยเตาะแตะ", color: "green", icon: Baby },
-  { id: "3-4", label: "3-4 ปี", desc: "อนุบาล 1", color: "orange", icon: Shapes },
-  { id: "4-5", label: "4-5 ปี", desc: "อนุบาล 2", color: "blue", icon: Rocket },
-  { id: "5-6", label: "5-6 ปี", desc: "อนุบาล 3", color: "pink", icon: Star },
-  { id: "เตรียมป1", label: "เตรียมขึ้น ป.1", desc: "สอบเข้า", color: "red", icon: Backpack },
-  { id: "เสริมเชาว์", label: "เสริมเชาว์ฯ", desc: "ฝึกสมอง", color: "purple", icon: Brain },
-  { id: "บัตรคำ", label: "บัตรคำ", desc: "คำศัพท์", color: "yellow", icon: Layers },
-  { id: "ตามหน่วย", label: "ใบงาน", desc: "การเรียนรู้", color: "teal", icon: FolderOpen },
-];
+const DEFAULT_AGE_OPTIONS = [];
 
 const AgeCard = ({ id, label, desc, color, icon: Icon, onClick }) => {
   const colorMap = {
@@ -131,12 +122,14 @@ const AgeCard = ({ id, label, desc, color, icon: Icon, onClick }) => {
       </div>
 
       <div className="text-center z-10 flex flex-col items-center gap-0.5">
-        <h3 className="text-base sm:text-lg md:text-xl font-black text-slate-700 leading-tight">
+        {/* ✅ ใช้ Kanit ผ่าน font-display (หัวข้อการ์ด) */}
+        <h3 className="font-sans text-base sm:text-lg md:text-xl font-extrabold text-slate-700 leading-tight">
           {label}
         </h3>
 
         <div className="inline-block px-2 py-0.5 bg-slate-50 rounded-lg border border-slate-100 mt-0.5">
-          <p className={`text-[11px] sm:text-xs font-bold ${c.subText}`}>
+          {/* เนื้อความ: ปล่อยใช้ Sarabun (body) */}
+          <p className={`text-[11px] sm:text-xs font-semibold ${c.subText}`}>
             {desc}
           </p>
         </div>
@@ -210,7 +203,7 @@ export default function AgeSelection({ onSelectAge }) {
         overflow-y-auto md:overflow-hidden
       "
     >
-      {/* Background Decor */}
+      {/* Background Decor (เดิม) */}
       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none"></div>
       <div className="absolute top-10 left-[-2%] text-sky-200 animate-[bounce_8s_infinite] hidden md:block opacity-60 pointer-events-none">
         <Cloud size={100} fill="currentColor" strokeWidth={0} />
@@ -222,8 +215,8 @@ export default function AgeSelection({ onSelectAge }) {
         <Cloud size={80} fill="currentColor" strokeWidth={0} />
       </div>
 
-      {/* Content Wrapper */}
-      <div className="w-full max-w-7xl flex flex-col items-center justify-center py-3 sm:py-4 px-3 sm:px-4 md:px-6 z-10 h-full">
+      {/* Content Wrapper – ขยายให้กว้างขึ้นบนจอใหญ่ */}
+      <div className="w-full max-w-[1200px] md:max-w-[1400px] xl:max-w-[1600px] flex flex-col items-center justify-center py-3 sm:py-4 px-3 sm:px-4 md:px-6 z-10 h-full">
         {/* Header */}
         <div className="text-center mb-3 sm:mb-4 relative z-10 flex-none">
           <motion.div
@@ -232,16 +225,18 @@ export default function AgeSelection({ onSelectAge }) {
             className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-full shadow-sm mb-2 border border-slate-100"
           >
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-            <span className="text-slate-400 font-bold text-[11px] sm:text-xs tracking-wide">
-              Kids Learning Media & Training
+            {/* tagline: ยังใช้ Sarabun ตาม body */}
+            <span className="text-slate-400 font-semibold text-[11px] sm:text-xs tracking-wide">
+              Kids Learning BY : Media & Training
             </span>
           </motion.div>
 
+          {/* ✅ หัวข้อใหญ่ใช้ Kanit ผ่าน font-display */}
           <motion.h1
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: "spring" }}
-            className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-700 mb-1 tracking-tight"
+            className="font-sans text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-700 mb-1 tracking-tight"
           >
             <span className="text-indigo-500">ห้องเรียน</span>
             <span className="text-pink-400">แห่ง</span>
@@ -252,14 +247,33 @@ export default function AgeSelection({ onSelectAge }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-slate-500 text-sm sm:text-base font-bold max-w-2xl mx-auto px-2"
+            className="text-slate-500 text-sm sm:text-base font-semibold max-w-2xl mx-auto px-2"
           >
             เลือกห้องเรียนที่เหมาะสมกับน้องๆ ตามช่วงวัยและรูปแบบการเรียนรู้
           </motion.p>
         </div>
 
-        {/* Grid Cards */}
-        <div className="w-full max-w-[1200px] flex-1 flex flex-col justify-start mt-1 md:mt-2">
+        {/* Grid + Background Illustration */}
+        <div className="w-full flex-1 flex flex-col justify-start mt-1 md:mt-2 relative">
+          {/* ⭐ เลเยอร์รูปภาพ/ฉากหลัง น่ารัก ๆ แต่ทางการ อยู่หลังปุ่มช่วงอายุ */}
+          <div className="absolute inset-0 pointer-events-none -z-10">
+            <div
+              className="hidden md:block absolute -left-6 top-1/2 -translate-y-1/2 w-40 h-40 lg:w-52 lg:h-52 
+                            rounded-[2rem] bg-gradient-to-br from-sky-50 to-indigo-50 
+                            border border-slate-100 shadow-md opacity-80"
+            />
+            <div
+              className="hidden md:block absolute -right-4 bottom-2 w-40 h-40 lg:w-48 lg:h-48 
+                            rounded-full bg-gradient-to-tr from-emerald-50 via-teal-50 to-white 
+                            border border-emerald-50 shadow-md opacity-80"
+            />
+            <div
+              className="hidden sm:flex absolute left-3 bottom-3 lg:left-6 lg:bottom-4 
+                            items-center gap-2 bg-white/95 px-3 py-2 rounded-2xl 
+                            border border-slate-100 shadow-sm max-w-[260px]"
+            ></div>
+          </div>
+
           <AnimatePresence mode="wait">
             <motion.div
               key={currentPage}
@@ -313,7 +327,6 @@ export default function AgeSelection({ onSelectAge }) {
                 border border-slate-100
               "
             >
-              {/* Prev */}
               <button
                 onClick={goToPrevPage}
                 disabled={currentPage === 1}
@@ -328,10 +341,13 @@ export default function AgeSelection({ onSelectAge }) {
                   }
                 `}
               >
-                <ChevronLeft size={18} strokeWidth={3} className="sm:w-6 sm:h-6" />
+                <ChevronLeft
+                  size={18}
+                  strokeWidth={3}
+                  className="sm:w-6 sm:h-6"
+                />
               </button>
 
-              {/* Page Numbers */}
               <div className="flex items-center gap-1.5 sm:gap-3">
                 {getPageNumbers().map((number) => (
                   <button
@@ -353,7 +369,6 @@ export default function AgeSelection({ onSelectAge }) {
                 ))}
               </div>
 
-              {/* Next */}
               <button
                 onClick={goToNextPage}
                 disabled={currentPage === totalPages}
@@ -368,12 +383,15 @@ export default function AgeSelection({ onSelectAge }) {
                   }
                 `}
               >
-                <ChevronRight size={18} strokeWidth={3} className="sm:w-6 sm:h-6" />
+                <ChevronRight
+                  size={18}
+                  strokeWidth={3}
+                  className="sm:w-6 sm:h-6"
+                />
               </button>
             </div>
           )}
 
-          {/* Admin Button */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -385,7 +403,7 @@ export default function AgeSelection({ onSelectAge }) {
                 group flex items-center gap-1.5 
                 text-[11px] sm:text-xs 
                 text-slate-400 hover:text-indigo-500 
-                font-bold 
+                font-semibold 
                 px-3.5 sm:px-4 py-1.5 
                 rounded-full 
                 transition-all duration-300 
@@ -397,7 +415,7 @@ export default function AgeSelection({ onSelectAge }) {
                 size={14}
                 className="group-hover:rotate-90 transition-transform duration-500"
               />
-              <span>Admin Login</span>
+              <span className="font-sans">Admin Login</span>
             </button>
           </motion.div>
         </div>

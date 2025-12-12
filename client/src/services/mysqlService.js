@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // ✅ ลิงก์ Cloudflare ของ Backend
-const API_URL = 'https://masters-into-necklace-cents.trycloudflare.com/api';
+const API_URL = 'https://impact-bug-getting-albuquerque.trycloudflare.com/api';
 
 // 🔥 สร้าง Base URL อัตโนมัติ (ตัด /api ออก) เพื่อเอาไปแปะหน้าชื่อรูป
 const BASE_URL = API_URL.replace('/api', '');

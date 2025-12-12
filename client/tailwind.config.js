@@ -6,11 +6,13 @@ export default {
   ],
   theme: {
     extend: {
-      // เพิ่ม Animation สำหรับ Background Blobs
       animation: {
         blob: "blob 7s infinite",
       },
-      // กำหนดท่าทางขยับ (ลอยไปมา + ขยายหด)
+       fontFamily: {
+        sans: ['Sarabun', 'system-ui', 'sans-serif'],
+        display: ['Kanit', 'system-ui', 'sans-serif'],
+      },
       keyframes: {
         blob: {
           "0%": {

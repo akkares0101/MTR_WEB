@@ -1,72 +1,85 @@
 /* src/index.css */
+
+/* 1) เอา Google Fonts ไว้บนสุด ก่อนทุกอย่าง */
+@import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@400;500;600;700&display=swap");
+
+/* 2) แล้วค่อย import Tailwind v4 */
 @import "tailwindcss";
 
-/* 1. Import Font - ใช้ Mali เป็นหลักสำหรับหัวข้อเพื่อให้ดูขี้เล่น */
-@import url('https://fonts.googleapis.com/css2?family=Mali:wght@400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap');
-
-/* 2. ตั้งค่า Theme */
+/* 3) Theme (ใช้กับ Tailwind v4) */
 @theme {
-  --font-display: 'Mali', cursive;
-  --font-body: 'Prompt', sans-serif;
-  
-  /* เพิ่มสี Brand ให้ดูสดใสขึ้น */
-  --color-brand-primary: #FF5C8D; /* ชมพูอมแดงสดใส */
-  --color-brand-secondary: #5C9DFF; /* ฟ้าสดใส */
-  --color-brand-yellow: #FFD25F; /* เหลืองนวล */
+  /* ฟอนต์หลักทั้งระบบ (body) */
+  --font-sans: "Sarabun", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  /* ฟอนต์สำหรับหัวข้อ / โลโก้ / title */
+  --font-display: "Kanit", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* สีแบรนด์ */
+  --color-brand-primary: #ff5c8d;
+  --color-brand-secondary: #5c9dff;
+  --color-brand-yellow: #ffd25f;
 }
 
-/* 3. Global Styles */
-html, body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-  overflow-x: hidden;
+/* 4) Global styles + บังคับฟอนต์ */
+@layer base {
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+
+    /* ใช้ Sarabun เป็นฟอนต์หลักทุกที่ */
+    font-family: var(--font-sans) !important;
+
+    /* พื้นหลังโทนครีม + ลายจุด */
+    background-color: #fff9f2;
+    background-image:
+      radial-gradient(#ffe4d6 2px, transparent 2px),
+      radial-gradient(#ffe4d6 2px, transparent 2px);
+    background-size: 32px 32px;
+    background-position: 0 0, 16px 16px;
+    background-attachment: fixed;
+
+    cursor: default;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    min-height: 100vh;
+    width: 100%;
+    isolation: isolate;
+  }
+
+  /* หัวข้อ / โลโก้ / Title ใช้ Kanit */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  .heading-th {
+    font-family: var(--font-display);
+    letter-spacing: 0.02em;
+  }
+
+  /* สีเวลาลากคลุมข้อความ */
+  ::selection {
+    background-color: #ffb7d2;
+    color: #be123c;
+  }
 }
 
-body {
-  font-family: 'Prompt', sans-serif;
-  min-height: 100vh;
-  
-  /* ✅ ปรับพื้นหลัง: เปลี่ยนจากขาวล้วนเป็นสีครีมอ่อนๆ (Creamy) ให้ดูอบอุ่นสบายตา */
-  background-color: #FFF9F2; 
-  
-  /* ✅ ลายจุด: เปลี่ยนสีจุดให้เป็นสีส้ม/ชมพูจางๆ ดูขี้เล่น */
-  background-image: 
-      radial-gradient(#FFE4D6 2px, transparent 2px), 
-      radial-gradient(#FFE4D6 2px, transparent 2px);
-  background-size: 32px 32px; /* ขยายจุดให้ห่างขึ้นนิดนึง */
-  background-position: 0 0, 16px 16px;
-  background-attachment: fixed;
-
-  /* ทำให้เมาส์เป็นรูปมือเมื่อชี้ Link/Button (เด็กๆ จะได้รู้ว่ากดได้) */
-  cursor: default; 
-
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-#root {
-  min-height: 100vh;
-  width: 100%;
-  isolation: isolate;
-}
-
-/* 4. Selection Style - เวลาลากคลุมข้อความ */
-::selection {
-  background-color: #FFB7D2; /* สีชมพูนมเย็น */
-  color: #BE123C;
-}
-
-/* 5. Custom Scrollbar - ✅ ปรับให้เป็นแท่งมนๆ สีสันสดใส */
+/* 5) Utilities: scrollbar + text-cartoon + utility ฟอนต์ */
 @layer utilities {
   .custom-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: #FECDD3 transparent; /* สีชมพูอ่อน */
+    scrollbar-color: #fecdd3 transparent;
   }
 
   .custom-scrollbar::-webkit-scrollbar {
-    width: 10px; /* กว้างขึ้นนิดนึงให้ดูป้อมๆ */
+    width: 10px;
     height: 10px;
   }
 
@@ -76,16 +89,16 @@ body {
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: #FCA5A5; /* สีส้มอมชมพู */
-    border-radius: 99px; /* กลมดิ๊ก */
-    border: 3px solid #FFF9F2; /* ขอบสีเดียวกับพื้นหลังเพื่อให้ดูลอยๆ */
+    background-color: #fca5a5;
+    border-radius: 99px;
+    border: 3px solid #fff9f2;
     background-clip: content-box;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: #F43F5E; /* เข้มขึ้นเมื่อชี้ */
+    background-color: #f43f5e;
   }
-  
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
@@ -94,38 +107,54 @@ body {
     scrollbar-width: none;
   }
 
-  /* ✅ แถม: Class สำหรับตัวหนังสือขอบขาว (Text Stroke) เหมือนการ์ตูน */
+  /* ขอบตัวอักษรขาว สไตล์การ์ตูน */
   .text-cartoon {
-    text-shadow: 
-      2px 2px 0px #FFFFFF, 
-      -1px -1px 0 #FFFFFF,  
-      1px -1px 0 #FFFFFF,
-      -1px 1px 0 #FFFFFF,
-      1px 1px 0 #FFFFFF;
+    text-shadow:
+      2px 2px 0px #ffffff,
+      -1px -1px 0 #ffffff,
+      1px -1px 0 #ffffff,
+      -1px 1px 0 #ffffff,
+      1px 1px 0 #ffffff;
+  }
+
+  /* utility ฟอนต์: ใช้ใน JSX เป็น className="font-display" / "font-body" */
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .font-body {
+    font-family: var(--font-sans);
   }
 }
 
-/* 6. Component Styles - ✅ เพิ่มสไตล์น่ารักๆ */
+/* 6) Components: ปุ่ม / การ์ดน่ารัก ๆ */
 @layer components {
-  /* ปุ่มแบบนูนๆ กดแล้วยุบ (Jelly Button) */
+  /* ปุ่มแบบนูน (Jelly Button) */
   .btn-cute {
-    @apply rounded-2xl font-display font-bold tracking-wide transition-all duration-200 cursor-pointer select-none;
+    @apply rounded-2xl font-bold tracking-wide transition-all duration-200 cursor-pointer select-none;
     @apply shadow-[0_4px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[4px];
     @apply hover:-translate-y-[2px] hover:shadow-[0_6px_0_0_rgba(0,0,0,0.1)];
+    @apply font-display;
   }
 
-  /* การ์ดแบบลอยๆ เด้งดึ๋ง */
+  /* การ์ดเด้งดึ๋ง */
   .card-pop {
     @apply bg-white rounded-[2rem] border-2 border-slate-100 shadow-sm transition-all duration-300;
     @apply hover:border-rose-200 hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02];
   }
 }
 
-/* ✅ Animation: ลอยตุ๊บป่อง (สำหรับพวกก้อนเมฆหรือไอคอนตกแต่ง) */
+/* 7) Animation: ลอยตุ๊บป่อง */
 @keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
 }
 
 .animate-float {

@@ -1,5 +1,5 @@
 // src/pages/ResultsPage.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { API } from "../services/api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import QRCode from "react-qr-code";
 
-export default function ResultsPage({ age, categories, onBack }) {
+export default function ResultsPage({ age, categories = [], onBack }) {
   const [worksheets, setWorksheets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState(null);
@@ -25,7 +25,7 @@ export default function ResultsPage({ age, categories, onBack }) {
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
 
-  // ✅ แสดง 4 ใบงานต่อหน้า
+  // ✅ แสดง 4 ใบงานต่อหน้า (เหมือนเดิม)
   const itemsPerPage = 4;
 
   useEffect(() => {
@@ -33,11 +33,29 @@ export default function ResultsPage({ age, categories, onBack }) {
       setLoading(true);
       try {
         const allData = await API.getWorksheets();
-        const filtered = allData.filter((item) => {
-          const itemAgeString = String(item.ageRange || "").trim();
-          const selectedAge = String(age || "").trim();
-          const ageMatch = itemAgeString.includes(selectedAge);
-          const catMatch = categories.includes(item.category);
+
+        const selectedAge = String(age ?? "").trim();
+        const selectedCats = (categories || [])
+          .map((c) => String(c ?? "").trim())
+          .filter(Boolean);
+
+        const filtered = (allData || []).filter((item) => {
+          const itemAgeString = String(item.ageRange ?? item.age_range ?? "")
+            .trim();
+
+          // ✅ แก้ให้ match แบบไม่พัง
+          const ageMatch =
+            selectedAge.length > 0
+              ? itemAgeString.includes(selectedAge)
+              : true;
+
+          const itemCat = String(
+            item.category ?? item.category_name ?? item.subject ?? ""
+          ).trim();
+
+          const catMatch =
+            selectedCats.length > 0 ? selectedCats.includes(itemCat) : true;
+
           return ageMatch && catMatch;
         });
 
@@ -67,16 +85,21 @@ export default function ResultsPage({ age, categories, onBack }) {
   };
   const goToPage = (n) => setCurrentPage(n);
 
-  const getPageNumbers = () => {
-    const pageNumbers = [];
-    for (let i = 1; i <= totalPages; i++) {
-      pageNumbers.push(i);
-    }
-    return pageNumbers;
+  const pageNumbers = useMemo(() => {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }, [totalPages]);
+
+  // ✅ แหล่ง QR ที่ปลอดภัยกว่า "#"
+  const getQrValue = (sheet) => {
+    const url = sheet?.pdfUrl || sheet?.pdf_url || sheet?.imageUrl || sheet?.image_url;
+    return url || (typeof window !== "undefined" ? window.location.href : "https://example.com");
   };
 
+  const openPreview = (sheet) => setPreview(sheet);
+  const closePreview = () => setPreview(null);
+
   return (
-    <div className="h-full w-full flex flex-col relative bg-[#FDFBF7] overflow-hidden">
+    <div className="h-full w-full flex flex-col relative bg-[#FDFBF7] overflow-hidden font-body">
       {/* Background Decor */}
       <div className="absolute top-0 right-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-10 right-[5%] text-rose-200/40 animate-pulse hidden md:block">
@@ -87,7 +110,7 @@ export default function ResultsPage({ age, categories, onBack }) {
         </div>
       </div>
 
-      {/* 1. HEADER (Compact & Responsive) */}
+      {/* 1. HEADER */}
       <div className="flex-none pt-3 pb-2 px-4 sm:px-6 md:px-10 z-10">
         <div className="w-full flex flex-col md:flex-row justify-between items-center gap-3 md:gap-4">
           <div className="flex flex-row md:flex-row items-center md:items-start gap-3 md:gap-4 text-center md:text-left w-full md:w-auto">
@@ -104,11 +127,7 @@ export default function ResultsPage({ age, categories, onBack }) {
                 flex-shrink-0
               "
             >
-              <ArrowLeft
-                size={22}
-                strokeWidth={3}
-                className="sm:w-6 sm:h-6"
-              />
+              <ArrowLeft size={22} strokeWidth={3} className="sm:w-6 sm:h-6" />
             </button>
 
             <div className="flex flex-col">
@@ -118,26 +137,26 @@ export default function ResultsPage({ age, categories, onBack }) {
                 className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-full border border-slate-100 shadow-sm mb-1 self-center md:self-start"
               >
                 <div className="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
-                <span className="text-slate-500 font-bold text-[11px] sm:text-xs">
+                <span className="font-sans text-slate-500 font-bold text-[11px] sm:text-xs">
                   วิชา: {categories.slice(0, 2).join(", ")}
                   {categories.length > 2 ? "..." : ""}
                 </span>
               </motion.div>
 
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-700 leading-tight">
+              <h2 className="font-sans text-2xl sm:text-3xl md:text-4xl font-black text-slate-700 leading-tight">
                 ใบงานน้อง <span className="text-rose-500">{age}</span>
               </h2>
             </div>
           </div>
 
           <div className="mt-1 md:mt-0 bg-white/80 backdrop-blur-sm px-4 sm:px-6 py-1.5 sm:py-2 rounded-2xl border-[3px] border-slate-100 flex items-center gap-2 sm:gap-3 shadow-sm">
-            <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">
+            <span className="font-sansy text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">
               เจอทั้งหมด
             </span>
-            <span className="text-2xl sm:text-3xl font-black text-rose-500">
+            <span className="font-sans text-2xl sm:text-3xl font-black text-rose-500">
               {worksheets.length}
             </span>
-            <span className="text-[10px] sm:text-xs font-bold text-slate-400">
+            <span className="font-sans text-[10px] sm:text-xs font-bold text-slate-400">
               ใบ
             </span>
           </div>
@@ -146,14 +165,11 @@ export default function ResultsPage({ age, categories, onBack }) {
 
       {/* 2. CONTENT AREA */}
       <div className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-8 pb-24 pt-1 md:pt-2">
-        <div className="w-full h-full flex flex-col justify-center items-center">
+        <div className="w-full h-full flex flex-col items-center">
           {loading ? (
             <div className="flex flex-col items-center justify-center h-full">
-              <Loader
-                size={40}
-                className="text-rose-400 animate-spin mb-4"
-              />
-              <p className="text-slate-400 font-bold text-base sm:text-lg animate-pulse">
+              <Loader size={40} className="text-rose-400 animate-spin mb-4" />
+              <p className="font-sans text-slate-400 font-bold text-base sm:text-lg animate-pulse">
                 กำลังค้นหา...
               </p>
             </div>
@@ -162,121 +178,131 @@ export default function ResultsPage({ age, categories, onBack }) {
               <div className="bg-slate-100 p-5 rounded-full mb-4">
                 <SearchX size={40} className="text-slate-300" />
               </div>
-              <h3 className="text-slate-500 font-bold text-lg sm:text-xl">
+              <h3 className="font-sans text-slate-500 font-bold text-lg sm:text-xl">
                 ไม่พบใบงานที่เลือก
               </h3>
             </div>
           ) : (
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentPage}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="
-                  grid 
-                  grid-cols-2 
-                  md:grid-cols-3 
-                  lg:grid-cols-4 
-                  gap-3 sm:gap-4 md:gap-6 
-                  w-full max-w-[1300px] 
-                  content-start
-                  pb-2
-                "
-              >
-                {currentItems.map((sheet) => (
-                  <motion.div
-                    key={sheet.id}
-                    whileHover={{ y: -5, scale: 1.02 }}
-                    onClick={() => setPreview(sheet)}
-                    className="
-                      group relative p-3 
-                      rounded-[1.6rem] sm:rounded-[1.8rem]
-                      bg-white 
-                      border-[2.5px] border-slate-100 
-                      hover:border-rose-200 
-                      shadow-sm hover:shadow-xl 
-                      transition-all duration-300 
-                      cursor-pointer 
-                      flex flex-col 
-                      overflow-hidden
-                    "
-                  >
-                    {/* Image Container - [3/4] Aspect Ratio */}
-                    <div className="relative w-full overflow-hidden rounded-xl bg-slate-50 mb-2.5 sm:mb-3 border border-slate-100 aspect-[3/4] group-hover:border-rose-100 transition-colors">
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-10" />
-                      <img
-                        src={sheet.imageUrl}
-                        alt={sheet.title}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src =
-                            "https://placehold.co/300x400/png?text=No+Image";
-                        }}
-                      />
+            <div className="w-full max-w-[1200px] md:max-w-[1400px] xl:max-w-[1600px] relative flex-1 flex flex-col justify-center">
+              {/* Background layer */}
+              <div className="absolute inset-0 pointer-events-none -z-10">
+                <div className="hidden lg:block absolute -left-6 top-1/2 -translate-y-1/2 w-40 h-40 xl:w-52 xl:h-52 rounded-[2rem] bg-gradient-to-br from-sky-50 to-indigo-50 border border-slate-100 shadow-md opacity-80" />
+                <div className="hidden md:block absolute -right-4 bottom-4 w-36 h-36 lg:w-44 lg:h-44 rounded-full bg-gradient-to-tr from-emerald-50 via-teal-50 to-white border border-emerald-50 shadow-md opacity-80" />
+                <div className="hidden sm:flex absolute left-2 bottom-2 lg:left-4 lg:bottom-4 items-center gap-2 bg-white/95 px-3 py-2 rounded-2xl border border-slate-100 shadow-sm max-w-[260px]">
+                  <div className="w-8 h-8 rounded-xl bg-rose-50 flex items-center justify-center border border-rose-100">
+                    <Sparkles className="w-4 h-4 text-rose-400" />
+                  </div>
+                  <p className="text-[11px] leading-snug text-slate-500 font-semibold text-left">
+                    คลิกใบงานเพื่อดูตัวอย่าง หรือสแกน QR ไปทำบนมือถือ / แท็บเล็ต
+                  </p>
+                </div>
+              </div>
 
-                      {/* Category Badge */}
-                      <div className="absolute top-2 left-2 z-20">
-                        <span className="bg-white/95 px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-extrabold text-indigo-500 shadow-sm border border-indigo-50 flex items-center gap-1">
-                          <Star
-                            size={8}
-                            fill="currentColor"
-                            className="text-yellow-400"
-                          />
-                          {sheet.category}
-                        </span>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentPage}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="
+                    grid 
+                    grid-cols-2 
+                    md:grid-cols-3 
+                    lg:grid-cols-4 
+                    gap-3 sm:gap-4 md:gap-6 
+                    w-full 
+                    content-start
+                    pb-2
+                  "
+                >
+                  {currentItems.map((sheet) => (
+                    <motion.div
+                      key={sheet.id}
+                      whileHover={{ y: -5, scale: 1.02 }}
+                      onClick={() => openPreview(sheet)}
+                      className="
+                        group relative p-3 
+                        rounded-[1.6rem] sm:rounded-[1.8rem]
+                        bg-white 
+                        border-[2.5px] border-slate-100 
+                        hover:border-rose-200 
+                        shadow-sm hover:shadow-xl 
+                        transition-all duration-300 
+                        cursor-pointer 
+                        flex flex-col 
+                        overflow-hidden
+                      "
+                    >
+                      <div className="relative w-full overflow-hidden rounded-xl bg-slate-50 mb-2.5 sm:mb-3 border border-slate-100 aspect-[3/4] group-hover:border-rose-100 transition-colors">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-10" />
+
+                        <img
+                          src={sheet.imageUrl || sheet.image_url}
+                          alt={sheet.title}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src =
+                              "https://placehold.co/300x400/png?text=No+Image";
+                          }}
+                        />
+
+                        <div className="absolute top-2 left-2 z-20">
+                          <span className="font-sans bg-white/95 px-2 py-1 rounded-lg text-[9px] sm:text-[10px] font-extrabold text-indigo-500 shadow-sm border border-indigo-50 flex items-center gap-1">
+                            <Star
+                              size={8}
+                              fill="currentColor"
+                              className="text-yellow-400"
+                            />
+                            {sheet.category}
+                          </span>
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Content - Compact Footer */}
-                    <div className="flex flex-col mt-auto gap-1">
-                      <h3 className="font-bold text-slate-700 text-xs sm:text-sm leading-tight line-clamp-1 text-center group-hover:text-rose-500 transition-colors px-1">
-                        {sheet.title}
-                      </h3>
-                      <button
-                        type="button"
-                        className="
-                          w-full mt-auto py-1.5 
-                          rounded-xl 
-                          bg-indigo-50 text-indigo-500 
-                          font-bold text-[11px] sm:text-xs 
-                          border border-indigo-100 
-                          group-hover:bg-rose-500 
-                          group-hover:text-white 
-                          group-hover:border-rose-500 
-                          transition-all shadow-sm 
-                          flex items-center justify-center gap-1
-                        "
-                      >
-                        <Eye size={14} />
-                        ดูตัวอย่าง
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
-              </motion.div>
-            </AnimatePresence>
+                      <div className="flex flex-col mt-auto gap-1">
+                        <h3 className="font-sans font-bold text-slate-700 text-xs sm:text-sm leading-tight line-clamp-1 text-center group-hover:text-rose-500 transition-colors px-1">
+                          {sheet.title}
+                        </h3>
+
+                        {/* ✅ กันคลิกแล้ว bubble เปิด/ปิดผิดจังหวะ */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openPreview(sheet);
+                          }}
+                          className="
+                            font-sans
+                            w-full mt-auto py-1.5 
+                            rounded-xl 
+                            bg-indigo-50 text-indigo-500 
+                            font-bold text-[11px] sm:text-xs 
+                            border border-indigo-100 
+                            hover:bg-rose-500 
+                            hover:text-white 
+                            hover:border-rose-500 
+                            transition-all shadow-sm 
+                            flex items-center justify-center gap-1
+                          "
+                        >
+                          <Eye size={14} />
+                          ดูตัวอย่าง
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </AnimatePresence>
+            </div>
           )}
         </div>
       </div>
 
-      {/* 3. PAGINATION BAR (Bottom Center - Responsive) */}
+      {/* 3. PAGINATION BAR */}
       {!loading && totalPages > 1 && (
         <div className="absolute bottom-4 sm:bottom-5 left-0 right-0 px-3 sm:px-4 z-30 flex justify-center pointer-events-none">
-          <div
-            className="
-              pointer-events-auto 
-              flex items-center gap-3 sm:gap-4 
-              bg-white/95 backdrop-blur 
-              px-4 sm:px-6 py-1.5 sm:py-2 
-              rounded-[1.6rem] sm:rounded-[2rem] 
-              shadow-md sm:shadow-lg 
-              border border-slate-100
-            "
-          >
-            {/* Prev */}
+          <div className="pointer-events-auto flex items-center gap-3 sm:gap-4 bg-white/95 backdrop-blur px-4 sm:px-6 py-1.5 sm:py-2 rounded-[1.6rem] sm:rounded-[2rem] shadow-md sm:shadow-lg border border-slate-100">
             <button
               onClick={goToPrevPage}
               disabled={currentPage === 1}
@@ -291,21 +317,16 @@ export default function ResultsPage({ age, categories, onBack }) {
                 }
               `}
             >
-              <ChevronLeft
-                size={18}
-                strokeWidth={3}
-                className="sm:w-6 sm:h-6"
-              />
+              <ChevronLeft size={18} strokeWidth={3} className="sm:w-6 sm:h-6" />
             </button>
 
-            {/* Page numbers */}
             <div className="flex items-center gap-1.5 sm:gap-3">
-              {getPageNumbers().map((number) => (
+              {pageNumbers.map((number) => (
                 <button
                   key={number}
                   onClick={() => goToPage(number)}
                   className={`
-                    rounded-full font-black transition-all border-2
+                    font-sans rounded-full font-black transition-all border-2
                     w-9 h-9 sm:w-11 sm:h-11
                     text-sm sm:text-base
                     ${
@@ -320,7 +341,6 @@ export default function ResultsPage({ age, categories, onBack }) {
               ))}
             </div>
 
-            {/* Next */}
             <button
               onClick={goToNextPage}
               disabled={currentPage === totalPages}
@@ -335,11 +355,7 @@ export default function ResultsPage({ age, categories, onBack }) {
                 }
               `}
             >
-              <ChevronRight
-                size={18}
-                strokeWidth={3}
-                className="sm:w-6 sm:h-6"
-              />
+              <ChevronRight size={18} strokeWidth={3} className="sm:w-6 sm:h-6" />
             </button>
           </div>
         </div>
@@ -350,7 +366,7 @@ export default function ResultsPage({ age, categories, onBack }) {
         {preview && (
           <div
             className="fixed inset-0 bg-indigo-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4"
-            onClick={() => setPreview(null)}
+            onClick={closePreview}
           >
             <motion.div
               initial={{ scale: 0.86, opacity: 0, rotateX: 10 }}
@@ -367,12 +383,10 @@ export default function ResultsPage({ age, categories, onBack }) {
               "
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Top gradient overlay */}
               <div className="absolute top-0 left-0 right-0 h-12 sm:h-16 bg-gradient-to-b from-white to-transparent z-10 pointer-events-none" />
 
-              {/* Close button */}
               <button
-                onClick={() => setPreview(null)}
+                onClick={closePreview}
                 className="
                   absolute top-3 right-3 sm:top-4 sm:right-4 z-20 
                   w-9 h-9 sm:w-10 sm:h-10 
@@ -386,57 +400,54 @@ export default function ResultsPage({ age, categories, onBack }) {
                 <X size={22} strokeWidth={3} className="sm:w-6 sm:h-6" />
               </button>
 
-              {/* Preview Area */}
               <div className="flex-1 flex items-center justify-center bg-[#F8FAFC] p-3 sm:p-4 md:p-6">
-                {preview.pdfUrl ? (
+                {preview.pdfUrl || preview.pdf_url ? (
                   <iframe
-                    src={preview.pdfUrl}
+                    src={preview.pdfUrl || preview.pdf_url}
                     className="w-full h-full rounded-xl sm:rounded-2xl border-4 border-white shadow-sm bg-white"
                     title="PDF Preview"
                   />
                 ) : (
                   <img
-                    src={preview.imageUrl}
+                    src={preview.imageUrl || preview.image_url}
                     className="max-h-full max-w-full object-contain rounded-xl sm:rounded-2xl shadow-lg border-4 border-white bg-white"
                     alt="Preview"
                   />
                 )}
               </div>
 
-              {/* Bottom Bar */}
-              <div className="flex flex-col md:flex-row justifybetween items-center p-4 sm:p-5 bg-white border-t-2 border-slate-50 gap-3 sm:gap-4">
-                {/* QR block */}
+              <div className="flex flex-col md:flex-row justify-between items-center p-4 sm:p-5 bg-white border-t-2 border-slate-50 gap-3 sm:gap-4">
                 <div className="flex items-center gap-3 sm:gap-4 bg-indigo-50/60 px-3 py-2 sm:p-2 sm:pr-5 rounded-2xl border border-indigo-50 w-full md:w-auto">
                   <div className="bg-white p-2 rounded-xl shadow-sm flex-shrink-0">
                     <QRCode
-                      value={preview.pdfUrl || "#"}
+                      value={getQrValue(preview)}
                       size={44}
                       fgColor="#4F46E5"
                       bgColor="transparent"
                     />
                   </div>
                   <div className="text-left">
-                    <p className="text-[9px] sm:text-[10px] text-indigo-400 font-black uppercase tracking-wider mb-0.5">
+                    <p className="font-sans text-[9px] sm:text-[10px] text-indigo-400 font-black uppercase tracking-wider mb-0.5">
                       Scan to Mobile
                     </p>
-                    <p className="text-slate-700 font-bold text-xs sm:text-sm">
+                    <p className="font-sans text-slate-700 font-bold text-xs sm:text-sm">
                       สแกนไปทำบนมือถือ / แท็บเล็ต
                     </p>
                   </div>
                 </div>
 
-                {/* Download button */}
                 <a
-                  href={preview.pdfUrl || "#"}
+                  href={preview.pdfUrl || preview.pdf_url || preview.imageUrl || preview.image_url || "#"}
                   target="_blank"
                   rel="noreferrer"
                   className="
+                    font-sans
                     w-full md:w-auto 
                     flex items-center justify-center gap-2.5 sm:gap-3 
                     bg-rose-500 text-white 
                     px-5 sm:px-8 py-2.5 sm:py-3 
                     rounded-2xl 
-                    font-bold text-sm sm:textbase 
+                    font-bold text-sm sm:text-base 
                     shadow-[0_4px_0_0_rgba(190,18,60,1)] 
                     hover:shadow-[0_2px_0_0_rgba(190,18,60,1)] 
                     hover:translate-y-[2px] 
@@ -445,7 +456,7 @@ export default function ResultsPage({ age, categories, onBack }) {
                   "
                 >
                   <Download size={18} className="sm:w-5 sm:h-5" strokeWidth={3} />
-                  ดาวน์โหลด PDF
+                  ดาวน์โหลด
                 </a>
               </div>
             </motion.div>

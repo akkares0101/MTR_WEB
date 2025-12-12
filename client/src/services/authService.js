@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // ลิงก์เดียวกับ api.js ตรงนี้ backend 3000
-const API_URL = 'https://masters-into-necklace-cents.trycloudflare.com/api'; 
+const API_URL = 'https://impact-bug-getting-albuquerque.trycloudflare.com/api'; 
 const SESSION_KEY = 'current_session_v5';
 
 export const AuthService = {

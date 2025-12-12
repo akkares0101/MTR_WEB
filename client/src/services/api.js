@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://masters-into-necklace-cents.trycloudflare.com/api';
+const API_URL = 'https://impact-bug-getting-albuquerque.trycloudflare.com/api';
 const BASE_URL = API_URL.replace('/api', '');
 
 export const API = {

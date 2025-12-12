@@ -6,7 +6,6 @@ import AgeSelection from './components/AgeSelection'; // ตอนนี้ย�
 import UserFlow from './pages/UserFlow';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminLogin from './pages/AdminLogin';
-import TeacherModePage from './pages/TeacherModePage';   // 👈 เพิ่มตรงนี้
 import ProtectedRoute from './components/ProtectedRoute';
 
 function AppContent() {
@@ -24,12 +23,6 @@ function AppContent() {
       <Route
         path="/"
         element={<UserFlow ageRange={selectedAge} onBack={() => navigate('/')} />}
-      />
-
-      {/* 👩‍🏫 หน้าโหมดคุณครูสอนเด็กอนุบาล */}
-      <Route
-        path="/teacher"
-        element={<TeacherModePage />}
       />
 
       {/* หน้า Login แอดมิน */}
