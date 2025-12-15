@@ -1,33 +1,47 @@
 /* src/index.css */
 
-/* 1) เอา Google Fonts ไว้บนสุด ก่อนทุกอย่าง */
+/* 1) Google Fonts ไว้บนสุด */
 @import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@400;500;600;700&display=swap");
 
-/* 2) แล้วค่อย import Tailwind v4 */
+/* 2) Tailwind v4 */
 @import "tailwindcss";
 
-/* 3) Theme (ใช้กับ Tailwind v4) */
-@theme {
-  /* ฟอนต์หลักทั้งระบบ (body) */
+/* 2.1) ✅ Fallback variables */
+:root {
   --font-sans: "Sarabun", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  /* ฟอนต์สำหรับหัวข้อ / โลโก้ / title */
   --font-display: "Kanit", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 
-  /* สีแบรนด์ */
   --color-brand-primary: #ff5c8d;
   --color-brand-secondary: #5c9dff;
   --color-brand-yellow: #ffd25f;
 }
 
-/* 4) Global styles + บังคับฟอนต์ */
+/* 3) Theme (Tailwind v4) */
+@theme {
+  --font-sans: "Sarabun", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: "Kanit", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --color-brand-primary: #ff5c8d;
+  --color-brand-secondary: #5c9dff;
+  --color-brand-yellow: #ffd25f;
+}
+
+/* 4) Global styles + ฟอนต์ */
 @layer base {
-  html,
+  html {
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+    font-family: var(--font-sans) !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
     margin: 0;
     padding: 0;
     width: 100%;
     height: 100%;
-    overflow-x: hidden;
 
     /* ใช้ Sarabun เป็นฟอนต์หลักทุกที่ */
     font-family: var(--font-sans) !important;
@@ -42,8 +56,6 @@
     background-attachment: fixed;
 
     cursor: default;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
   }
 
   #root {
@@ -52,7 +64,7 @@
     isolation: isolate;
   }
 
-  /* หัวข้อ / โลโก้ / Title ใช้ Kanit */
+  /* ✅ หัวข้อ / โลโก้ / Title ใช้ Kanit */
   h1,
   h2,
   h3,
@@ -60,18 +72,17 @@
   h5,
   h6,
   .heading-th {
-    font-family: var(--font-display);
+    font-family: var(--font-sans) !important; /* ✅ แก้ตรงนี้ */
     letter-spacing: 0.02em;
   }
 
-  /* สีเวลาลากคลุมข้อความ */
   ::selection {
     background-color: #ffb7d2;
     color: #be123c;
   }
 }
 
-/* 5) Utilities: scrollbar + text-cartoon + utility ฟอนต์ */
+/* 5) Utilities */
 @layer utilities {
   .custom-scrollbar {
     scrollbar-width: thin;
@@ -107,7 +118,6 @@
     scrollbar-width: none;
   }
 
-  /* ขอบตัวอักษรขาว สไตล์การ์ตูน */
   .text-cartoon {
     text-shadow:
       2px 2px 0px #ffffff,
@@ -117,19 +127,18 @@
       1px 1px 0 #ffffff;
   }
 
-  /* utility ฟอนต์: ใช้ใน JSX เป็น className="font-display" / "font-body" */
+  /* ✅ ฟอนต์ utility */
   .font-display {
-    font-family: var(--font-display);
+    font-family: var(--font-display) !important;
   }
 
   .font-body {
-    font-family: var(--font-sans);
+    font-family: var(--font-sans) !important;
   }
 }
 
-/* 6) Components: ปุ่ม / การ์ดน่ารัก ๆ */
+/* 6) Components */
 @layer components {
-  /* ปุ่มแบบนูน (Jelly Button) */
   .btn-cute {
     @apply rounded-2xl font-bold tracking-wide transition-all duration-200 cursor-pointer select-none;
     @apply shadow-[0_4px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-[4px];
@@ -137,26 +146,104 @@
     @apply font-display;
   }
 
-  /* การ์ดเด้งดึ๋ง */
   .card-pop {
     @apply bg-white rounded-[2rem] border-2 border-slate-100 shadow-sm transition-all duration-300;
     @apply hover:border-rose-200 hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02];
   }
 }
 
-/* 7) Animation: ลอยตุ๊บป่อง */
+/* 7) Animation */
 @keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-  100% {
-    transform: translateY(0px);
-  }
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
 }
 
 .animate-float {
   animation: float 3s ease-in-out infinite;
+}
+
+/* ======================================================
+   ✅ AgeSelection ONLY: Replace Lucide icons with images
+   (ต้องมี class ครอบหน้า: .age-selection-page)
+   วางรูปไว้ที่: src/assets/age-icons/*.png
+   ====================================================== */
+
+.age-selection-page
+  .shadow-inner.rounded-full.border-2.border-white:has(> svg.lucide) {
+  position: relative;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 70% 70%;
+}
+
+.age-selection-page
+  .shadow-inner.rounded-full.border-2.border-white
+  > svg.lucide {
+  opacity: 0;
+}
+
+.age-selection-page
+  .shadow-inner.rounded-full.border-2.border-white:has(> svg.lucide)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle at 30% 25%,
+    rgba(255, 255, 255, 0.85),
+    transparent 60%
+  );
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* map ตาม lucide class */
+.age-selection-page
+  .shadow-inner.rounded-full.border-2.border-white:has(> svg.lucide-baby) {
+  background-image: url("./assets/age-icons/baby.png");
+}
+
+.age-selection-page
+  .shadow-inner.rounded-full.border-2.border-white:has(> svg.lucide-shapes) {
+  background-image: url("./assets/age-icons/shapes.png");
+}
+
+.age-selection-page
+  .shadow-inner.rounded-full.border-2.border-white:has(> svg.lucide-rocket) {
+  background-image: url("./assets/age-icons/rocket.png");
+}
+
+.age-selection-page
+  .shadow-inner.rounded-full.border-2.border-white:has(> svg.lucide-star) {
+  background-image: url("./assets/age-icons/star.png");
+}
+
+.age-selection-page
+  .shadow-inner.rounded-full.border-2.border-white:has(> svg.lucide-backpack) {
+  background-image: url("./assets/age-icons/backpack.png");
+}
+
+.age-selection-page
+  .shadow-inner.rounded-full.border-2.border-white:has(> svg.lucide-brain) {
+  background-image: url("./assets/age-icons/brain.png");
+}
+
+.age-selection-page
+  .shadow-inner.rounded-full.border-2.border-white:has(> svg.lucide-layers) {
+  background-image: url("./assets/age-icons/layers.png");
+}
+
+.age-selection-page
+  .shadow-inner.rounded-full.border-2.border-white:has(
+    > svg.lucide-folder-open
+  ) {
+  background-image: url("./assets/age-icons/folderopen.png");
+}
+
+.age-selection-page
+  .shadow-inner.rounded-full.border-2.border-white:has(
+    > svg.lucide-folder-open
+  ) {
+  background-image: url("./assets/age-icons/MTR.png");
 }

@@ -1,106 +1,102 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_URL = 'https://impact-bug-getting-albuquerque.trycloudflare.com/api';
-const BASE_URL = API_URL.replace('/api', '');
+const API_URL = "https://clicks-mount-annex-historical.trycloudflare.com/api";
+const BASE_URL = new URL(API_URL).origin; // ✅ ชัวร์กว่า replace("/api","")
+
+// ✅ helper: แปลง /uploads/... -> absolute url
+const toAbsoluteUrl = (maybeUrl) => {
+  if (!maybeUrl) return "";
+  if (typeof maybeUrl !== "string") return "";
+  if (maybeUrl.startsWith("http")) return maybeUrl;
+  const normalized = maybeUrl.startsWith("/") ? maybeUrl : `/${maybeUrl}`;
+  return `${BASE_URL}${normalized}`;
+};
 
 export const API = {
   // ==========================================
   // 👶 AGE GROUPS
   // ==========================================
+  uploadAgeGroupLogo: async (id, file) => {
+    const fd = new FormData();
+    fd.append("logo", file);
+
+    const res = await axios.post(`${API_URL}/age-groups/${id}/logo`, fd, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    const data = res.data || {};
+    return {
+      ...data,
+      logoUrl: toAbsoluteUrl(data.logoUrl || data.logo_url),
+    };
+  },
+
+  uploadAgeGroupCateCover: async (id, file) => {
+    const fd = new FormData();
+    fd.append("cover", file);
+
+    const res = await axios.post(`${API_URL}/age-groups/${id}/cate-cover`, fd, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    const data = res.data || {};
+    return {
+      ...data,
+      cateCoverUrl: toAbsoluteUrl(data.cateCoverUrl || data.cate_cover_url),
+    };
+  },
+
+  deleteAgeGroupCateCover: async (id) => {
+    const res = await axios.delete(`${API_URL}/age-groups/${id}/cate-cover`);
+    return res.data;
+  },
+
   getAgeGroups: async () => {
     const res = await axios.get(`${API_URL}/age-groups`);
-    return res.data.map(item => ({
+    return (res.data || []).map((item) => ({
       id: item.id,
-      ageValue: item.age_value,
-      label: item.label,
-      desc: item.description,
-      color: item.color,
-      icon: item.icon_name,
-      sortOrder: item.sort_order ?? 0,
+      ageValue: item.age_value ?? item.ageValue ?? "",
+      label: item.label ?? "",
+      desc: item.description ?? item.desc ?? "",
+      color: item.color ?? "green",
+      icon: item.icon_name ?? item.icon ?? "Baby",
+      sortOrder: item.sort_order ?? item.sortOrder ?? 0,
+      logoUrl: toAbsoluteUrl(item.logo_url ?? item.logoUrl),
+      cateCoverUrl: toAbsoluteUrl(item.cate_cover_url ?? item.cateCoverUrl),
     }));
   },
 
-  // data = { ageValue, label, desc, color, icon, sortOrder }
-  addAgeGroup: async (data) => {
-    await axios.post(`${API_URL}/age-groups`, data);
+  getAgeGroupById: async (id) => {
+    const res = await axios.get(`${API_URL}/age-groups/${id}`);
+    const item = res.data || {};
+    return {
+      id: item.id,
+      ageValue: item.age_value ?? item.ageValue ?? "",
+      label: item.label ?? "",
+      desc: item.description ?? item.desc ?? "",
+      color: item.color ?? "green",
+      icon: item.icon_name ?? item.icon ?? "Baby",
+      sortOrder: item.sort_order ?? item.sortOrder ?? 0,
+      logoUrl: toAbsoluteUrl(item.logo_url ?? item.logoUrl),
+      cateCoverUrl: toAbsoluteUrl(item.cate_cover_url ?? item.cateCoverUrl),
+    };
   },
 
-  updateAgeGroup: async (id, data) => {
-    await axios.put(`${API_URL}/age-groups/${id}`, data);
-  },
-
-  deleteAgeGroup: async (id) => {
-    await axios.delete(`${API_URL}/age-groups/${id}`);
-  },
+  addAgeGroup: async (data) => axios.post(`${API_URL}/age-groups`, data),
+  updateAgeGroup: async (id, data) => axios.put(`${API_URL}/age-groups/${id}`, data),
+  deleteAgeGroup: async (id) => axios.delete(`${API_URL}/age-groups/${id}`),
 
   // ==========================================
-  // 📄 WORKSHEETS
-  // ==========================================
-  addBulkWorksheets: async (ageRanges, category, fileList) => {
-    const formData = new FormData();
-    formData.append('ageRange', ageRanges.join(','));
-    formData.append('category', category);
-
-    for (let i = 0; i < fileList.length; i++) {
-      formData.append('files', fileList[i]);
-    }
-
-    await axios.post(`${API_URL}/worksheets/bulk`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-  },
-
-  getWorksheets: async () => {
-    const res = await axios.get(`${API_URL}/worksheets`);
-
-    return res.data.map(item => {
-      let img = item.image_url;
-      let pdf = item.pdf_url;
-
-      if (img && !img.startsWith('http')) {
-        img = `${BASE_URL}${img}`;
-      }
-      if (pdf && !pdf.startsWith('http')) {
-        pdf = `${BASE_URL}${pdf}`;
-      }
-
-      return {
-        id: item.id,
-        title: item.title,
-        ageRange: item.age_range,
-        category: item.category,
-        imageUrl: img,
-        pdfUrl: pdf
-      };
-    });
-  },
-
-  addWorksheet: async (formData) => {
-    await axios.post(`${API_URL}/worksheets`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-  },
-
-  updateWorksheet: async (id, formData) => {
-    await axios.put(`${API_URL}/worksheets/${id}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-  },
-
-  deleteWorksheet: async (id) => {
-    await axios.delete(`${API_URL}/worksheets/${id}`);
-  },
-
-  // ==========================================
-  // 📚 CATEGORIES (หมวดวิชา)
+  // 🏷️ CATEGORIES
   // ==========================================
   getCategories: async () => {
     const res = await axios.get(`${API_URL}/categories`);
-    return res.data.map(c => ({
+    return (res.data || []).map((c) => ({
       id: c.id,
       name: c.name,
-      ageGroup: c.age_group,
-      sortOrder: c.sort_order
+      ageGroup: c.age_group ?? c.ageGroup ?? "",
+      sortOrder: c.sort_order ?? c.sortOrder ?? 0,
+      iconUrl: toAbsoluteUrl(c.icon_url ?? c.iconUrl), // ✅ NEW
     }));
   },
 
@@ -108,11 +104,65 @@ export const API = {
     await axios.post(`${API_URL}/categories`, {
       name,
       age_group: ageGroup,
-      sort_order: sortOrder
+      sort_order: sortOrder,
     });
   },
 
-  deleteCategory: async (id) => {
-    await axios.delete(`${API_URL}/categories/${id}`);
-  }
+  deleteCategory: async (id) => axios.delete(`${API_URL}/categories/${id}`),
+
+  // ✅ NEW: upload รูปไอคอนหมวดวิชา
+  uploadCategoryIcon: async (id, file) => {
+    const fd = new FormData();
+    fd.append("icon", file);
+
+    const res = await axios.post(`${API_URL}/categories/${id}/icon`, fd, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    const data = res.data || {};
+    return {
+      ...data,
+      iconUrl: toAbsoluteUrl(data.iconUrl || data.icon_url),
+    };
+  },
+
+  // ==========================================
+  // 📄 WORKSHEETS
+  // ==========================================
+  addBulkWorksheets: async (ageRanges, category, fileList, coverImage) => {
+    const formData = new FormData();
+    formData.append("ageRange", ageRanges.join(","));
+    formData.append("category", category);
+
+    if (coverImage) formData.append("cover", coverImage);
+    for (let i = 0; i < fileList.length; i++) formData.append("files", fileList[i]);
+
+    await axios.post(`${API_URL}/worksheets/bulk`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  getWorksheets: async () => {
+    const res = await axios.get(`${API_URL}/worksheets`);
+    return (res.data || []).map((item) => ({
+      id: item.id,
+      title: item.title,
+      ageRange: item.age_range ?? item.ageRange ?? "",
+      category: item.category ?? "",
+      imageUrl: toAbsoluteUrl(item.image_url ?? item.imageUrl),
+      pdfUrl: toAbsoluteUrl(item.pdf_url ?? item.pdfUrl),
+    }));
+  },
+
+  addWorksheet: async (formData) =>
+    axios.post(`${API_URL}/worksheets`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+
+  updateWorksheet: async (id, formData) =>
+    axios.put(`${API_URL}/worksheets/${id}`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+
+  deleteWorksheet: async (id) => axios.delete(`${API_URL}/worksheets/${id}`),
 };

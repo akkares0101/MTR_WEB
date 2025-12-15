@@ -67,7 +67,7 @@ export default function UserFlow() {
           <div className="flex items-center gap-3 sm:gap-4">
             {/* โลโก้จาก assets */}
             <div className="relative flex-shrink-0">
-              <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-2xl shadow-inner shadow-indigo-100 border-[3px] border-white bg-white overflow-hidden flex items-center justify-center">
+              <div className="w-11 h-11 sm:w-15 sm:h-15 rounded-2xl shadow-inner shadow-indigo-100 border-[3px] border-white bg-white overflow-hidden flex items-center justify-center">
                 <img
                   src={logo}
                   alt="Kids Learning Logo"

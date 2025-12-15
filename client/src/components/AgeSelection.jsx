@@ -16,7 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { API } from "../services/api"; // ✅ ต่อกับ API
+import { API } from "../services/api";
 
 // ✅ แมปชื่อ icon จาก DB → เป็น component จริง
 const ICON_MAP = {
@@ -30,67 +30,24 @@ const ICON_MAP = {
   FolderOpen,
 };
 
-// ✅ ค่าเริ่มต้น (ใช้ถ้า DB ยังไม่มีข้อมูล หรือโหลดไม่สำเร็จ)
 const DEFAULT_AGE_OPTIONS = [];
 
-const AgeCard = ({ id, label, desc, color, icon: Icon, onClick }) => {
+const AgeCard = ({ id, label, desc, color, icon: Icon, logoUrl, onClick }) => {
+  const [logoOk, setLogoOk] = useState(true);
+
+  useEffect(() => {
+    setLogoOk(true);
+  }, [logoUrl]);
+
   const colorMap = {
-    green: {
-      border: "border-emerald-200",
-      text: "text-emerald-600",
-      subText: "text-emerald-500",
-      iconBg: "bg-emerald-100",
-      hover: "hover:border-emerald-400",
-    },
-    orange: {
-      border: "border-orange-200",
-      text: "text-orange-600",
-      subText: "text-orange-600",
-      iconBg: "bg-orange-100",
-      hover: "hover:border-orange-400",
-    },
-    blue: {
-      border: "border-sky-200",
-      text: "text-sky-600",
-      subText: "text-sky-500",
-      iconBg: "bg-sky-100",
-      hover: "hover:border-sky-400",
-    },
-    pink: {
-      border: "border-rose-200",
-      text: "text-rose-600",
-      subText: "text-rose-500",
-      iconBg: "bg-rose-100",
-      hover: "hover:border-rose-400",
-    },
-    purple: {
-      border: "border-purple-200",
-      text: "text-purple-600",
-      subText: "text-purple-500",
-      iconBg: "bg-purple-100",
-      hover: "hover:border-purple-400",
-    },
-    yellow: {
-      border: "border-amber-200",
-      text: "text-amber-600",
-      subText: "text-amber-500",
-      iconBg: "bg-amber-100",
-      hover: "hover:border-amber-400",
-    },
-    red: {
-      border: "border-red-200",
-      text: "text-red-600",
-      subText: "text-red-500",
-      iconBg: "bg-red-100",
-      hover: "hover:border-red-400",
-    },
-    teal: {
-      border: "border-teal-200",
-      text: "text-teal-600",
-      subText: "text-teal-500",
-      iconBg: "bg-teal-100",
-      hover: "hover:border-teal-400",
-    },
+    green: { border: "border-emerald-200", text: "text-emerald-600", subText: "text-emerald-500", iconBg: "bg-emerald-100", hover: "hover:border-emerald-400" },
+    orange:{ border: "border-orange-200", text: "text-orange-600", subText: "text-orange-600", iconBg: "bg-orange-100", hover: "hover:border-orange-400" },
+    blue:  { border: "border-sky-200", text: "text-sky-600", subText: "text-sky-500", iconBg: "bg-sky-100", hover: "hover:border-sky-400" },
+    pink:  { border: "border-rose-200", text: "text-rose-600", subText: "text-rose-500", iconBg: "bg-rose-100", hover: "hover:border-rose-400" },
+    purple:{ border: "border-purple-200", text: "text-purple-600", subText: "text-purple-500", iconBg: "bg-purple-100", hover: "hover:border-purple-400" },
+    yellow:{ border: "border-amber-200", text: "text-amber-600", subText: "text-amber-500", iconBg: "bg-amber-100", hover: "hover:border-amber-400" },
+    red:   { border: "border-red-200", text: "text-red-600", subText: "text-red-500", iconBg: "bg-red-100", hover: "hover:border-red-400" },
+    teal:  { border: "border-teal-200", text: "text-teal-600", subText: "text-teal-500", iconBg: "bg-teal-100", hover: "hover:border-teal-400" },
   };
   const c = colorMap[color] || colorMap.green;
 
@@ -108,27 +65,34 @@ const AgeCard = ({ id, label, desc, color, icon: Icon, onClick }) => {
         transition-all duration-300 group overflow-hidden
       `}
     >
+      {/* ✅ วงกลมโลโก้/ไอคอน “ขนาดคงที่” */}
       <div
         className={`
-          mb-2 p-2.5 sm:p-3
+          mb-2
+          w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16
+          flex items-center justify-center
           ${c.iconBg} rounded-full shadow-inner 
           group-hover:scale-110 transition-transform duration-300 
-          border-2 border-white
+          border-2 border-white overflow-hidden
         `}
       >
-        <Icon
-          className={`${c.text} w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 stroke-[2.5px]`}
-        />
+        {logoUrl && logoOk ? (
+          <img
+            src={logoUrl}
+            alt={label}
+            className="w-full h-full object-cover rounded-full"
+            onError={() => setLogoOk(false)}
+          />
+        ) : (
+          <Icon className={`${c.text} w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 stroke-[2.5px]`} />
+        )}
       </div>
 
       <div className="text-center z-10 flex flex-col items-center gap-0.5">
-        {/* ✅ ใช้ Kanit ผ่าน font-display (หัวข้อการ์ด) */}
-        <h3 className="font-sans text-base sm:text-lg md:text-xl font-extrabold text-slate-700 leading-tight">
+        <h3 className="font-display text-base sm:text-lg md:text-xl font-extrabold text-slate-700 leading-tight">
           {label}
         </h3>
-
         <div className="inline-block px-2 py-0.5 bg-slate-50 rounded-lg border border-slate-100 mt-0.5">
-          {/* เนื้อความ: ปล่อยใช้ Sarabun (body) */}
           <p className={`text-[11px] sm:text-xs font-semibold ${c.subText}`}>
             {desc}
           </p>
@@ -138,26 +102,32 @@ const AgeCard = ({ id, label, desc, color, icon: Icon, onClick }) => {
   );
 };
 
+
 export default function AgeSelection({ onSelectAge }) {
   const navigate = useNavigate();
-
-  // ✅ state สำหรับรายการอายุ (เริ่มต้นด้วยค่า default)
   const [ageOptions, setAgeOptions] = useState(DEFAULT_AGE_OPTIONS);
 
-  // ✅ ดึงข้อมูลจาก DB
   useEffect(() => {
     const fetchAgeGroups = async () => {
       try {
         const ages = await API.getAgeGroups();
         if (ages && ages.length > 0) {
           const mapped = ages.map((ag) => {
-            const Icon = ICON_MAP[ag.icon] || Baby;
+            const iconKey = ag.icon || ag.icon_name;
+            const Icon = ICON_MAP[iconKey] || Baby;
+
+            const ageValue = ag.ageValue || ag.age_value;
+            const desc = ag.desc || ag.description;
+
+            const logoUrl = ag.logoUrl || ag.logo_url || "";
+
             return {
-              id: ag.ageValue,
-              label: ag.label || ag.ageValue,
-              desc: ag.desc || "",
+              id: ageValue,
+              label: ag.label || ageValue,
+              desc: desc || "",
               color: ag.color || "green",
               icon: Icon,
+              logoUrl,
             };
           });
           setAgeOptions(mapped);
@@ -170,11 +140,10 @@ export default function AgeSelection({ onSelectAge }) {
     fetchAgeGroups();
   }, []);
 
-  // Pagination State
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
-  // Pagination Logic
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = ageOptions.slice(indexOfFirstItem, indexOfLastItem);
@@ -197,13 +166,13 @@ export default function AgeSelection({ onSelectAge }) {
   return (
     <div
       className="
+        age-selection-page
         h-full w-full 
         flex flex-col items-center justify-center 
         relative bg-[#FDFBF7]
         overflow-y-auto md:overflow-hidden
       "
     >
-      {/* Background Decor (เดิม) */}
       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none"></div>
       <div className="absolute top-10 left-[-2%] text-sky-200 animate-[bounce_8s_infinite] hidden md:block opacity-60 pointer-events-none">
         <Cloud size={100} fill="currentColor" strokeWidth={0} />
@@ -215,9 +184,7 @@ export default function AgeSelection({ onSelectAge }) {
         <Cloud size={80} fill="currentColor" strokeWidth={0} />
       </div>
 
-      {/* Content Wrapper – ขยายให้กว้างขึ้นบนจอใหญ่ */}
       <div className="w-full max-w-[1200px] md:max-w-[1400px] xl:max-w-[1600px] flex flex-col items-center justify-center py-3 sm:py-4 px-3 sm:px-4 md:px-6 z-10 h-full">
-        {/* Header */}
         <div className="text-center mb-3 sm:mb-4 relative z-10 flex-none">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -225,18 +192,16 @@ export default function AgeSelection({ onSelectAge }) {
             className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-full shadow-sm mb-2 border border-slate-100"
           >
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-            {/* tagline: ยังใช้ Sarabun ตาม body */}
             <span className="text-slate-400 font-semibold text-[11px] sm:text-xs tracking-wide">
               Kids Learning BY : Media & Training
             </span>
           </motion.div>
 
-          {/* ✅ หัวข้อใหญ่ใช้ Kanit ผ่าน font-display */}
           <motion.h1
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: "spring" }}
-            className="font-sans text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-700 mb-1 tracking-tight"
+            className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-700 mb-1 tracking-tight"
           >
             <span className="text-indigo-500">ห้องเรียน</span>
             <span className="text-pink-400">แห่ง</span>
@@ -253,25 +218,11 @@ export default function AgeSelection({ onSelectAge }) {
           </motion.p>
         </div>
 
-        {/* Grid + Background Illustration */}
         <div className="w-full flex-1 flex flex-col justify-start mt-1 md:mt-2 relative">
-          {/* ⭐ เลเยอร์รูปภาพ/ฉากหลัง น่ารัก ๆ แต่ทางการ อยู่หลังปุ่มช่วงอายุ */}
           <div className="absolute inset-0 pointer-events-none -z-10">
-            <div
-              className="hidden md:block absolute -left-6 top-1/2 -translate-y-1/2 w-40 h-40 lg:w-52 lg:h-52 
-                            rounded-[2rem] bg-gradient-to-br from-sky-50 to-indigo-50 
-                            border border-slate-100 shadow-md opacity-80"
-            />
-            <div
-              className="hidden md:block absolute -right-4 bottom-2 w-40 h-40 lg:w-48 lg:h-48 
-                            rounded-full bg-gradient-to-tr from-emerald-50 via-teal-50 to-white 
-                            border border-emerald-50 shadow-md opacity-80"
-            />
-            <div
-              className="hidden sm:flex absolute left-3 bottom-3 lg:left-6 lg:bottom-4 
-                            items-center gap-2 bg-white/95 px-3 py-2 rounded-2xl 
-                            border border-slate-100 shadow-sm max-w-[260px]"
-            ></div>
+            <div className="hidden md:block absolute -left-6 top-1/2 -translate-y-1/2 w-40 h-40 lg:w-52 lg:h-52 rounded-[2rem] bg-gradient-to-br from-sky-50 to-indigo-50 border border-slate-100 shadow-md opacity-80" />
+            <div className="hidden md:block absolute -right-4 bottom-2 w-40 h-40 lg:w-48 lg:h-48 rounded-full bg-gradient-to-tr from-emerald-50 via-teal-50 to-white border border-emerald-50 shadow-md opacity-80" />
+            <div className="hidden sm:flex absolute left-3 bottom-3 lg:left-6 lg:bottom-4 items-center gap-2 bg-white/95 px-3 py-2 rounded-2xl border border-slate-100 shadow-sm max-w-[260px]" />
           </div>
 
           <AnimatePresence mode="wait">
@@ -306,6 +257,7 @@ export default function AgeSelection({ onSelectAge }) {
                     desc={opt.desc}
                     color={opt.color}
                     icon={opt.icon}
+                    logoUrl={opt.logoUrl}
                     onClick={onSelectAge}
                   />
                 </motion.div>
@@ -314,25 +266,14 @@ export default function AgeSelection({ onSelectAge }) {
           </AnimatePresence>
         </div>
 
-        {/* Footer: Pagination & Admin Button */}
         <div className="flex-none mt-2 sm:mt-3 flex flex-col items-center gap-2.5 sm:gap-3 w-full">
           {totalPages > 1 && (
-            <div
-              className="
-                flex items-center gap-3 sm:gap-4 
-                bg-white/90 backdrop-blur 
-                px-4 sm:px-6 py-1.5 sm:py-2 
-                rounded-[1.6rem] sm:rounded-[2rem] 
-                shadow-md sm:shadow-lg 
-                border border-slate-100
-              "
-            >
+            <div className="flex items-center gap-3 sm:gap-4 bg-white/90 backdrop-blur px-4 sm:px-6 py-1.5 sm:py-2 rounded-[1.6rem] sm:rounded-[2rem] shadow-md sm:shadow-lg border border-slate-100">
               <button
                 onClick={goToPrevPage}
                 disabled={currentPage === 1}
                 className={`
-                  flex items-center justify-center rounded-full 
-                  transition-all border-2
+                  flex items-center justify-center rounded-full transition-all border-2
                   w-9 h-9 sm:w-11 sm:h-11
                   ${
                     currentPage === 1
@@ -341,11 +282,7 @@ export default function AgeSelection({ onSelectAge }) {
                   }
                 `}
               >
-                <ChevronLeft
-                  size={18}
-                  strokeWidth={3}
-                  className="sm:w-6 sm:h-6"
-                />
+                <ChevronLeft size={18} strokeWidth={3} className="sm:w-6 sm:h-6" />
               </button>
 
               <div className="flex items-center gap-1.5 sm:gap-3">
@@ -373,8 +310,7 @@ export default function AgeSelection({ onSelectAge }) {
                 onClick={goToNextPage}
                 disabled={currentPage === totalPages}
                 className={`
-                  flex items-center justify-center rounded-full 
-                  transition-all border-2
+                  flex items-center justify-center rounded-full transition-all border-2
                   w-9 h-9 sm:w-11 sm:h-11
                   ${
                     currentPage === totalPages
@@ -383,20 +319,12 @@ export default function AgeSelection({ onSelectAge }) {
                   }
                 `}
               >
-                <ChevronRight
-                  size={18}
-                  strokeWidth={3}
-                  className="sm:w-6 sm:h-6"
-                />
+                <ChevronRight size={18} strokeWidth={3} className="sm:w-6 sm:h-6" />
               </button>
             </div>
           )}
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
             <button
               onClick={() => navigate("/admin/login")}
               className="
@@ -411,10 +339,7 @@ export default function AgeSelection({ onSelectAge }) {
                 border border-transparent hover:border-indigo-100
               "
             >
-              <Settings
-                size={14}
-                className="group-hover:rotate-90 transition-transform duration-500"
-              />
+              <Settings size={14} className="group-hover:rotate-90 transition-transform duration-500" />
               <span className="font-sans">Admin Login</span>
             </button>
           </motion.div>

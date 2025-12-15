@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -100,40 +100,74 @@ const getStyle = (index) => {
 };
 
 export default function CategorySelection({ ageRange, onBack, onSearch }) {
+  const aliveRef = useRef(true);
+
   const [categories, setCategories] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]); // ✅ เก็บเป็น id กันชื่อซ้ำ
   const [loading, setLoading] = useState(true);
+
+  // ✅ ปก Cate ของ AgeGroup (จาก DB)
+  const [ageCateCoverUrl, setAgeCateCoverUrl] = useState("");
+
+  // ✅ กันกรณีรูปไอคอนวิชาพัง -> fallback เป็น lucide
+  const [brokenCatIcon, setBrokenCatIcon] = useState({}); // { [catId]: true }
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      setLoading(true);
-      try {
-        const allCats = await API.getCategories();
+    aliveRef.current = true;
 
+    const fetchAll = async () => {
+      if (!aliveRef.current) return;
+      setLoading(true);
+
+      try {
+        const [allCats, allAges] = await Promise.all([
+          API.getCategories(),
+          API.getAgeGroups(),
+        ]);
+
+        // ✅ หา cover ของ ageRange ปัจจุบัน
+        const matchAge = (allAges || []).find(
+          (a) => a.ageValue === ageRange || a.age_value === ageRange
+        );
+        const cover =
+          matchAge?.cateCoverUrl || matchAge?.cate_cover_url || "";
+
+        // ✅ filter categories
         const filteredCats = (allCats || []).filter((c) => {
           const catAge = c.ageGroup ?? c.age_group;
           return catAge === ageRange;
         });
 
+        if (!aliveRef.current) return;
+
+        setAgeCateCoverUrl(cover);
         setCategories(filteredCats);
         setSelectedIds([]); // ✅ เปลี่ยนอายุแล้วล้างการเลือก
+        setBrokenCatIcon({}); // ✅ ล้างสถานะรูปพัง
         setCurrentPage(1);
       } catch (error) {
         console.error("Failed to fetch categories:", error);
+      } finally {
+        if (aliveRef.current) setLoading(false);
       }
-      setLoading(false);
     };
 
-    fetchCategories();
+    fetchAll();
+
+    return () => {
+      aliveRef.current = false;
+    };
   }, [ageRange]);
 
   const toggleCat = (catId) => {
     setSelectedIds((prev) =>
-      prev.includes(catId) ? prev.filter((x) => x !== catId) : [...prev, catId]
+      prev.includes(catId)
+        ? prev.filter((x) => x !== catId)
+        : [...prev, catId]
     );
   };
 
@@ -151,11 +185,12 @@ export default function CategorySelection({ ageRange, onBack, onSearch }) {
   };
   const goToPage = (n) => setCurrentPage(n);
 
-  const pageNumbers = useMemo(() => {
-    return Array.from({ length: totalPages }, (_, i) => i + 1);
-  }, [totalPages]);
+  const pageNumbers = useMemo(
+    () => Array.from({ length: totalPages }, (_, i) => i + 1),
+    [totalPages]
+  );
 
-  // ✅ ส่งออกเป็น "ชื่อวิชา" ให้เหมือนเดิม (แต่ปลอดภัยกว่าด้วยการเก็บ id ภายใน)
+  // ✅ ส่งออกเป็น "ชื่อวิชา" ให้เหมือนเดิม
   const selectedNames = useMemo(() => {
     const map = new Map(categories.map((c) => [c.id, c.name]));
     return selectedIds.map((id) => map.get(id)).filter(Boolean);
@@ -163,6 +198,20 @@ export default function CategorySelection({ ageRange, onBack, onSearch }) {
 
   return (
     <div className="h-full w-full flex flex-col relative bg-[#FDFBF7] overflow-hidden font-body">
+      {/* ✅ Hero Cover (Cate Cover ของ AgeGroup) */}
+      {ageCateCoverUrl && (
+        <div className="absolute inset-x-0 top-0 h-56 sm:h-64 md:h-72 pointer-events-none -z-10">
+          <img
+            src={ageCateCoverUrl}
+            alt={`cover-${ageRange}`}
+            className="w-full h-full object-cover"
+            onError={() => setAgeCateCoverUrl("")}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-white/70 to-[#FDFBF7]" />
+          <div className="absolute inset-0 bg-white/10" />
+        </div>
+      )}
+
       {/* Background Decor หลัก */}
       <div className="absolute top-0 right-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-10 right-[5%] text-rose-200/40 animate-pulse hidden md:block">
@@ -173,10 +222,9 @@ export default function CategorySelection({ ageRange, onBack, onSearch }) {
         </div>
       </div>
 
-      {/* 1. Header Section */}
+      {/* Header */}
       <div className="flex-none pt-3 pb-2 px-4 sm:px-6 md:px-10 z-10">
         <div className="w-full flex flex-col md:flex-row justify-between items-center gap-3 md:gap-4">
-          {/* Title & Back Button */}
           <div className="flex flex-row md:flex-row items-center md:items-start gap-3 md:gap-4 w-full md:w-auto">
             <button
               onClick={onBack}
@@ -191,13 +239,24 @@ export default function CategorySelection({ ageRange, onBack, onSearch }) {
                 animate={{ opacity: 1, x: 0 }}
                 className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-full border border-slate-100 shadow-sm mb-1"
               >
-                <div className="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></div>
+                <div className="w-6 h-6 rounded-full overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center">
+                  {ageCateCoverUrl ? (
+                    <img
+                      src={ageCateCoverUrl}
+                      alt="cate-cover-thumb"
+                      className="w-full h-full object-cover"
+                      onError={() => setAgeCateCoverUrl("")}
+                    />
+                  ) : (
+                    <div className="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
+                  )}
+                </div>
+
                 <span className="text-slate-500 font-bold text-[11px] sm:text-xs font-sans">
                   ห้องเรียนน้อง {ageRange}
                 </span>
               </motion.div>
 
-              {/* ✅ บังคับใช้ Kanit ชัวร์ ๆ */}
               <h1 className="font-sans text-2xl sm:text-3xl md:text-4xl font-black text-slate-700 leading-tight">
                 <span className="text-indigo-500">อยากเก่ง</span>
                 <span className="text-rose-400">วิชา</span>
@@ -206,7 +265,6 @@ export default function CategorySelection({ ageRange, onBack, onSearch }) {
             </div>
           </div>
 
-          {/* Counter Badge */}
           <div className="mt-2 md:mt-0 bg-white/80 backdrop-blur-sm px-4 sm:px-5 py-1.5 sm:py-2 rounded-2xl border-[3px] border-slate-100 flex items-center gap-2 sm:gap-3 shadow-sm">
             <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider font-sans">
               เลือกแล้ว
@@ -221,7 +279,7 @@ export default function CategorySelection({ ageRange, onBack, onSearch }) {
         </div>
       </div>
 
-      {/* 2. Scrollable Content Area */}
+      {/* Content */}
       <div className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-8 pb-24 pt-1 md:pt-2">
         <div className="w-full h-full flex flex-col items-center">
           {loading ? (
@@ -242,7 +300,6 @@ export default function CategorySelection({ ageRange, onBack, onSearch }) {
             </div>
           ) : (
             <div className="w-full max-w-[1200px] md:max-w-[1400px] xl:max-w-[1600px] relative flex-1 flex flex-col justify-center">
-              {/* เลเยอร์ฉากหลัง */}
               <div className="absolute inset-0 pointer-events-none -z-10">
                 <div className="hidden lg:block absolute -left-6 top-1/2 -translate-y-1/2 w-40 h-40 xl:w-52 xl:h-52 rounded-[2rem] bg-gradient-to-br from-sky-50 to-indigo-50 border border-slate-100 shadow-md opacity-80" />
                 <div className="hidden md:block absolute -right-4 bottom-4 w-36 h-36 lg:w-44 lg:h-44 rounded-full bg-gradient-to-tr from-emerald-50 via-teal-50 to-white border border-emerald-50 shadow-md opacity-80" />
@@ -269,10 +326,12 @@ export default function CategorySelection({ ageRange, onBack, onSearch }) {
                   {currentItems.map((cat, index) => {
                     const isActive = selectedIds.includes(cat.id);
 
-                    // ✅ ใช้ globalIndex กันสี/ไอคอนเปลี่ยนไปมาเวลาเปลี่ยนหน้า
                     const globalIndex = indexOfFirstItem + index;
                     const style = getStyle(globalIndex);
-                    const Icon = style.icon;
+                    const FallbackIcon = style.icon;
+
+                    const catIconUrl = cat.iconUrl || cat.icon_url || "";
+                    const canUseImage = !!catIconUrl && !brokenCatIcon[cat.id];
 
                     return (
                       <motion.div
@@ -314,6 +373,7 @@ export default function CategorySelection({ ageRange, onBack, onSearch }) {
                           className={`
                             mb-2 sm:mb-3 p-2.5 sm:p-3 rounded-full shadow-inner 
                             transition-transform duration-300 border-2 border-white
+                            flex items-center justify-center
                             ${
                               isActive
                                 ? "bg-rose-100 scale-110"
@@ -321,14 +381,29 @@ export default function CategorySelection({ ageRange, onBack, onSearch }) {
                             }
                           `}
                         >
-                          <Icon
-                            className={`${
-                              isActive ? "text-rose-500" : style.text
-                            } w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 stroke-[2.5px]`}
-                          />
+                          {canUseImage ? (
+                            <img
+                              src={catIconUrl}
+                              alt={`icon-${cat.name}`}
+                              className={`w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11 object-contain ${
+                                isActive ? "drop-shadow-sm" : ""
+                              }`}
+                              onError={() =>
+                                setBrokenCatIcon((prev) => ({
+                                  ...prev,
+                                  [cat.id]: true,
+                                }))
+                              }
+                            />
+                          ) : (
+                            <FallbackIcon
+                              className={`${
+                                isActive ? "text-rose-500" : style.text
+                              } w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 stroke-[2.5px]`}
+                            />
+                          )}
                         </div>
 
-                        {/* ✅ ชื่อวิชาใช้ Kanit */}
                         <h3
                           className={`
                             font-sans text-sm sm:text-base md:text-lg font-black leading-tight
@@ -416,16 +491,15 @@ export default function CategorySelection({ ageRange, onBack, onSearch }) {
             className="absolute bottom-16 sm:bottom-20 right-3 sm:right-6 z-40"
           >
             <button
-              onClick={() => onSearch(selectedNames)} // ✅ ส่งชื่อเหมือนเดิม
+              onClick={() => onSearch?.(selectedNames)}
               className="
                 font-sans flex items-center gap-2 sm:gap-2.5
-                bg-gradient-to-r from-rose-500 to-indigo-600
-                text-white text-sm sm:text-base md:text-lg font-bold
-                py-2.5 sm:py-3 px-4 sm:px-6
-                rounded-full
-                shadow-2xl shadow-rose-500/40
-                border-[2.5px] border-white/70 backdrop-blur-md
-                hover:scale-105 hover:-translate-y-1 active:scale-95
+                bg-indigo-600 text-white
+                border-[2.5px] border-white/70
+                py-2.5 sm:py-3 px-4 sm:px-6 rounded-full
+                shadow-[0_14px_30px_-18px_rgba(79,70,229,0.55)]
+                hover:bg-indigo-700 hover:-translate-y-1
+                active:translate-y-0 active:scale-[0.99]
                 transition-all
                 min-w-[180px] sm:min-w-[210px]
               "
