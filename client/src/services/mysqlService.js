@@ -1,9 +1,9 @@
 import axios from 'axios';
 
-// ✅ ลิงก์ Cloudflare ของ Backend
-const API_URL = 'https://clicks-mount-annex-historical.trycloudflare.com/api';
+//  ลิงก์ Cloudflare ของ Backend
+const API_URL = 'https://journalists-cowboy-monroe-finances.trycloudflare.com/api';
 
-// 🔥 สร้าง Base URL อัตโนมัติ (ตัด /api ออก) เพื่อเอาไปแปะหน้าชื่อรูป
+//  สร้าง Base URL อัตโนมัติ (ตัด /api ออก) เพื่อเอาไปแปะหน้าชื่อรูป
 const BASE_URL = API_URL.replace('/api', '');
 
 export const MySQLService = {
@@ -12,7 +12,7 @@ export const MySQLService = {
     const res = await axios.get(`${API_URL}/worksheets`);
     
     return res.data.map(item => {
-        // ✅ สูตรวิเศษ: จัดการเติมชื่อเว็บให้รูปภาพ
+        //  สูตรวิเศษ: จัดการเติมชื่อเว็บให้รูปภาพ
         let img = item.image_url;
         let pdf = item.pdf_url;
 
@@ -29,8 +29,8 @@ export const MySQLService = {
             title: item.title,
             ageRange: item.age_range,
             category: item.category,
-            imageUrl: img,            // ✅ ลิงก์สมบูรณ์
-            pdfUrl: pdf,              // ✅ ลิงก์สมบูรณ์
+            imageUrl: img,            
+            pdfUrl: pdf,              
             createdAt: item.created_at
         };
     });
@@ -42,7 +42,7 @@ export const MySQLService = {
     });
   },
   
-  // ✅ แก้ไขให้ใช้งานได้จริง
+  // แก้ไขให้ใช้งานได้จริง
   update: async (id, formData) => {
      // Backend คาดหวัง formData ที่มีไฟล์และ Existing URL
      await axios.put(`${API_URL}/worksheets/${id}`, formData, { 
@@ -61,11 +61,11 @@ export const MySQLService = {
   },
 
   addCategory: async (name, ageGroup) => {
-    // ✅ ส่ง age_group ไปด้วย (ถ้า Backend ต้องการ)
+    // ส่ง age_group ไปด้วย (ถ้า Backend ต้องการ)
     await axios.post(`${API_URL}/categories`, { name, age_group: ageGroup });
   },
 
-  // ✅ แก้ให้รับ ID แทน Name (เพราะ Backend ลบด้วย ID)
+  // แก้ให้รับ ID แทน Name (เพราะ Backend ลบด้วย ID)
   deleteCategory: async (id) => {
     await axios.delete(`${API_URL}/categories/${id}`);
   }

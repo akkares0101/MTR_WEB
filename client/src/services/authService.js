@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // ลิงก์เดียวกับ api.js ตรงนี้ backend 3000
-const API_URL = 'https://clicks-mount-annex-historical.trycloudflare.com/api'; 
+const API_URL = 'https://journalists-cowboy-monroe-finances.trycloudflare.com/api'; 
 const SESSION_KEY = 'current_session_v5';
 
 export const AuthService = {

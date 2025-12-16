@@ -1,9 +1,9 @@
 import axios from "axios";
 
-const API_URL = "https://clicks-mount-annex-historical.trycloudflare.com/api";
-const BASE_URL = new URL(API_URL).origin; // ✅ ชัวร์กว่า replace("/api","")
+const API_URL = "https://journalists-cowboy-monroe-finances.trycloudflare.com/api";
+const BASE_URL = new URL(API_URL).origin; // ชัวร์กว่า replace("/api","")
 
-// ✅ helper: แปลง /uploads/... -> absolute url
+//  helper: แปลง /uploads/... -> absolute url
 const toAbsoluteUrl = (maybeUrl) => {
   if (!maybeUrl) return "";
   if (typeof maybeUrl !== "string") return "";
@@ -14,7 +14,7 @@ const toAbsoluteUrl = (maybeUrl) => {
 
 export const API = {
   // ==========================================
-  // 👶 AGE GROUPS
+  //  AGE GROUPS
   // ==========================================
   uploadAgeGroupLogo: async (id, file) => {
     const fd = new FormData();
@@ -87,7 +87,7 @@ export const API = {
   deleteAgeGroup: async (id) => axios.delete(`${API_URL}/age-groups/${id}`),
 
   // ==========================================
-  // 🏷️ CATEGORIES
+  //  CATEGORIES
   // ==========================================
   getCategories: async () => {
     const res = await axios.get(`${API_URL}/categories`);
@@ -96,7 +96,7 @@ export const API = {
       name: c.name,
       ageGroup: c.age_group ?? c.ageGroup ?? "",
       sortOrder: c.sort_order ?? c.sortOrder ?? 0,
-      iconUrl: toAbsoluteUrl(c.icon_url ?? c.iconUrl), // ✅ NEW
+      iconUrl: toAbsoluteUrl(c.icon_url ?? c.iconUrl), 
     }));
   },
 
@@ -110,7 +110,7 @@ export const API = {
 
   deleteCategory: async (id) => axios.delete(`${API_URL}/categories/${id}`),
 
-  // ✅ NEW: upload รูปไอคอนหมวดวิชา
+  //  NEW: upload รูปไอคอนหมวดวิชา
   uploadCategoryIcon: async (id, file) => {
     const fd = new FormData();
     fd.append("icon", file);
@@ -127,7 +127,7 @@ export const API = {
   },
 
   // ==========================================
-  // 📄 WORKSHEETS
+  //  WORKSHEETS
   // ==========================================
   addBulkWorksheets: async (ageRanges, category, fileList, coverImage) => {
     const formData = new FormData();

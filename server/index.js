@@ -7,7 +7,7 @@ const fs = require("fs");
 
 const app = express();
 
-// ✅ CORS: อนุญาตให้ทุกที่เข้าถึงได้
+// CORS: อนุญาตให้ทุกที่เข้าถึงได้
 app.use(
   cors({
     origin: "*",
@@ -18,10 +18,10 @@ app.use(
 
 app.use(express.json());
 
-// ✅ Static Files
+// Static Files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ✅ Database: เชื่อมต่อ MySQL
+// Database: เชื่อมต่อ MySQL
 const db = mysql.createConnection({
   host: "127.0.0.1",
   user: "root",
@@ -35,7 +35,7 @@ db.connect((err) => {
 });
 
 // ==========================================
-// ✅ Multer: ตั้งค่าการอัปโหลดไฟล์ (ใบงาน)
+//  Multer: ตั้งค่าการอัปโหลดไฟล์ (ใบงาน)
 // ==========================================
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -52,7 +52,7 @@ const upload = multer({ storage });
 const cpUpload = upload.fields([{ name: "image" }, { name: "pdf" }]);
 
 // ==========================================
-// ✅ Multer: Upload logo สำหรับ Age Group
+//  Multer: Upload logo สำหรับ Age Group
 // ==========================================
 const ageLogoStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -83,7 +83,7 @@ const uploadAgeLogoSingle = (fieldName) => (req, res, next) => {
 };
 
 // ==========================================
-// ✅ Multer: Upload Cate Cover สำหรับ Age Group
+//  Multer: Upload Cate Cover สำหรับ Age Group
 // ==========================================
 const ageCateCoverStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -114,7 +114,7 @@ const uploadAgeCateCoverSingle = (fieldName) => (req, res, next) => {
 };
 
 // ==========================================
-// ✅ Multer: Upload ICON สำหรับ Categories (NEW)
+//  Multer: Upload ICON สำหรับ Categories (NEW)
 // ==========================================
 const categoryIconStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -145,7 +145,7 @@ const uploadCategoryIconSingle = (fieldName) => (req, res, next) => {
 };
 
 // ==========================================
-// 🔥 API ระบบสมาชิก (Login/Register)
+//  API ระบบสมาชิก (Login/Register)
 // ==========================================
 app.post("/api/login", (req, res) => {
   const { username, password } = req.body;
@@ -191,7 +191,7 @@ app.post("/api/register", (req, res) => {
 });
 
 // ==========================================
-// 👶 API ระดับชั้น (Age Groups)
+//  API ระดับชั้น (Age Groups)
 // ==========================================
 
 // 1) Get Age Groups
@@ -335,7 +335,7 @@ app.delete("/api/age-groups/:id/cate-cover", (req, res) => {
 });
 
 // ==========================================
-// 📄 API ใบงาน (Worksheets)
+//  API ใบงาน (Worksheets)
 // ==========================================
 app.get("/api/worksheets", (req, res) => {
   db.query("SELECT * FROM worksheets ORDER BY created_at DESC", (err, result) => {
@@ -394,7 +394,7 @@ app.delete("/api/worksheets/:id", (req, res) => {
 });
 
 // ==========================================
-// 🏷️ API หมวดวิชา (Categories)
+//  API หมวดวิชา (Categories)
 // ==========================================
 app.get("/api/categories", (req, res) => {
   db.query("SELECT * FROM categories ORDER BY age_group ASC, sort_order ASC, id ASC", (err, result) => {
@@ -422,7 +422,7 @@ app.post("/api/categories", (req, res) => {
   );
 });
 
-// ✅ NEW: Upload รูปไอคอนของหมวดวิชา
+//  NEW: Upload รูปไอคอนของหมวดวิชา
 app.post("/api/categories/:id/icon", uploadCategoryIconSingle("icon"), (req, res) => {
   const id = req.params.id;
   if (!req.file) return res.status(400).json({ message: "กรุณาอัปโหลดไฟล์รูปไอคอน" });
@@ -461,7 +461,7 @@ app.delete("/api/categories/:id", (req, res) => {
 });
 
 // ==========================================
-// ✅ Bulk Upload Worksheets
+//  Bulk Upload Worksheets
 // ==========================================
 app.post(
   "/api/worksheets/bulk",
